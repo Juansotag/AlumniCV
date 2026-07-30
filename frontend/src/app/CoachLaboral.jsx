@@ -55,7 +55,7 @@ Estoy aquí para ayudarte a prepararte para tus entrevistas, mejorar tu CV, anal
 
 Actualmente en tu inventario veo que tienes **${apps.length} procesos registrados**:
 * **${enCurso}** en curso 
-* **${seleccionados}** ofertas seleccionadas con éxito 🎉
+* **${seleccionados}** ofertas seleccionadas con éxito
 * **${fracasados}** procesos finalizados o pausados
 
 ¿De cuál de tus procesos de selección te gustaría hablar hoy, o en qué te puedo ayudar?`
@@ -132,14 +132,52 @@ Actualmente en tu inventario veo que tienes **${apps.length} procesos registrado
     const lines = text.split('\n')
     return lines.map((line, idx) => {
       let trimmed = line.trim()
-      
-      // Validar viñetas
+
+      // Heading ## (h2 — banner secundario)
+      if (trimmed.startsWith('## ')) {
+        const headingText = trimmed.substring(3)
+        return (
+          <div key={idx} style={{
+            fontFamily: '\'Publico Banner\', \'Georgia\', serif',
+            fontWeight: 800,
+            fontSize: '1rem',
+            color: 'var(--c-blue-dark)',
+            borderBottom: '2px solid var(--c-blue-dark)',
+            paddingBottom: '3px',
+            margin: '0.9rem 0 0.4rem 0',
+            letterSpacing: '0.01em'
+          }}>
+            {headingText}
+          </div>
+        )
+      }
+
+      // Heading # (h1 — banner principal)
+      if (trimmed.startsWith('# ')) {
+        const headingText = trimmed.substring(2)
+        return (
+          <div key={idx} style={{
+            fontFamily: '\'Publico Banner\', \'Georgia\', serif',
+            fontWeight: 800,
+            fontSize: '1.1rem',
+            color: 'var(--c-blue-dark)',
+            borderBottom: '2px solid var(--c-blue-dark)',
+            paddingBottom: '4px',
+            margin: '1rem 0 0.5rem 0',
+            letterSpacing: '0.01em'
+          }}>
+            {headingText}
+          </div>
+        )
+      }
+
+      // Viñetas * o -
       let isBullet = false
       if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
         isBullet = true
         trimmed = trimmed.substring(2)
       }
-      
+
       // Parsear negritas **texto**
       const parts = trimmed.split(/(\*\*[^*]+\*\*)/g)
       const content = parts.map((part, pIdx) => {
@@ -151,14 +189,14 @@ Actualmente en tu inventario veo que tienes **${apps.length} procesos registrado
 
       if (isBullet) {
         return (
-          <li key={idx} style={{ marginLeft: '1rem', listStyleType: 'disc', margin: '4px 0' }}>
+          <li key={idx} style={{ marginLeft: '1.2rem', listStyleType: 'disc', margin: '3px 0' }}>
             {content}
           </li>
         )
       }
-      
+
       return (
-        <p key={idx} style={{ margin: '0 0 0.5rem 0', minHeight: trimmed === '' ? '0.5rem' : 'auto' }}>
+        <p key={idx} style={{ margin: '0 0 0.4rem 0', minHeight: trimmed === '' ? '0.4rem' : 'auto' }}>
           {content}
         </p>
       )
