@@ -1,0 +1,14 @@
+# Railway — Servicio Frontend (AlumniCV Web)
+# Despliega el frontend estático usando Node.js puro y Nixpacks clásico.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npm run build"
+
+[build.nixpacksPlan.variables]
+NIXPACKS_NODE_VERSION = "22"
+
+[deploy]
+startCommand = "node server.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
