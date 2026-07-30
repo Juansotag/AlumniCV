@@ -5,15 +5,12 @@
 builder = "NIXPACKS"
 buildCommand = "npm install && npm run build"
 
+[build.nixpacksPlan.variables]
+NIXPACKS_NODE_VERSION = "22"
+
 [deploy]
-startCommand = "npx serve -s dist -l tcp://0.0.0.0:$PORT"
+startCommand = "npx serve -s dist -p $PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
-
-# Variables de entorno que DEBEN estar configuradas en Railway:
-#
-#   VITE_API_URL           → https://<tu-backend>.railway.app
-#   VITE_SUPABASE_URL      → https://xxxx.supabase.co
-#   VITE_SUPABASE_ANON_KEY → sb_publishable_...
