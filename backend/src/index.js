@@ -11,10 +11,15 @@ import coachRoutes from './routes/coach.js'
 const app = express()
 const PORT = process.env.PORT || 8000
 
+let cleanFrontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : ''
+if (cleanFrontendUrl.endsWith('/')) {
+  cleanFrontendUrl = cleanFrontendUrl.slice(0, -1)
+}
+
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
-  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  ...(cleanFrontendUrl ? [cleanFrontendUrl] : []),
 ]
 
 app.use(cors({
