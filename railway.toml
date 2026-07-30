@@ -1,0 +1,20 @@
+# AlumniCV — Monorepo Railway
+#
+# Este repositorio contiene DOS servicios independientes:
+#
+#   1. backend/   → API Node.js/Express
+#      railway.toml en backend/railway.toml
+#      Comando:  node src/index.js
+#
+#   2. frontend/  → SPA React/Vite (build estático)
+#      railway.toml en frontend/railway.toml
+#      Comando:  npx serve dist --listen $PORT
+#
+# En Railway, crear dos servicios apuntando a la misma fuente
+# (GitHub repo) y configurar cada uno con su subdirectorio:
+#
+#   Servicio backend  → Root Directory: backend
+#   Servicio frontend → Root Directory: frontend
+#
+# Variables de entorno requeridas:
+#   Ver backend/.env.example  y  frontend/.env.example
