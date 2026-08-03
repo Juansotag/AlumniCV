@@ -45,6 +45,16 @@ export async function requireAuth(req, res, next) {
   const nombre = user.user_metadata?.nombre ?? user.user_metadata?.full_name ?? null
 
   try {
+    // Usamos una transacción para evitar violación de unicidad en `correo`
+    // cuando Supabase reasigna un nuevo UUID al mismo email (ej. re-registro).
+    await query('BEGIN')
+
+    // Elimina cualquier registro huérfano con el mismo correo pero distinto id
+    await query(
+      'DELETE FROM usuarios WHERE correo = $1 AND id != $2',
+      [correo, userId]
+    )
+
     await query(`
       INSERT INTO usuarios (id, correo, nombre)
       VALUES ($1, $2, $3)
@@ -53,9 +63,12 @@ export async function requireAuth(req, res, next) {
             nombre = COALESCE(usuarios.nombre, EXCLUDED.nombre)
     `, [userId, correo, nombre])
 
+    await query('COMMIT')
+
     req.user = { id: userId, correo, nombre }
     next()
   } catch (err) {
+    await query('ROLLBACK').catch(() => {})
     console.error('Error al sincronizar usuario en Railway:', {
       message: err.message,
       code: err.code,
