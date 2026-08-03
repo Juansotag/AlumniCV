@@ -67,8 +67,10 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-panel-brand" aria-hidden="true">
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
           <img src="/branding/GovLab_blanco.png" alt="GovLab Universidad de La Sabana" style={{ height: 42 }} />
+          <div style={{ width: 48, height: 1, background: 'rgba(255,255,255,0.25)' }} />
+          <img src="/branding/Alumni blanco.png" alt="Alumni Universidad de La Sabana" style={{ height: 32 }} />
         </div>
         <h1 className="auth-brand-title">AlumniCV</h1>
         <p className="auth-brand-desc">
