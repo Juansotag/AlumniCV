@@ -56,7 +56,13 @@ export async function requireAuth(req, res, next) {
     req.user = { id: userId, correo, nombre }
     next()
   } catch (err) {
-    console.error('Error al sincronizar usuario en Railway:', err.message)
-    res.status(500).json({ error: 'Error interno de autenticación' })
+    console.error('Error al sincronizar usuario en Railway:', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      where: err.where,
+    })
+    res.status(500).json({ error: 'Error interno de autenticación', detail: err.message })
   }
 }
