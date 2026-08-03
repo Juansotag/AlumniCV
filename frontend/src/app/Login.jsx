@@ -44,10 +44,18 @@ export default function Login() {
   return (
     <div className="auth-container">
       <div className="auth-panel-brand" aria-hidden="true">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-          <img src="/branding/GovLab_blanco.png" alt="GovLab Universidad de La Sabana" style={{ height: 42 }} />
-          <div style={{ width: 48, height: 1, background: 'rgba(255,255,255,0.25)' }} />
-          <img src="/branding/Alumni blanco.png" alt="Alumni Universidad de La Sabana" style={{ height: 32 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.75rem' }}>
+          <img
+            src="/branding/Alumni blanco.png"
+            alt="Alumni Universidad de La Sabana"
+            style={{ maxHeight: 72, width: 'auto', display: 'block' }}
+          />
+          <div style={{ width: 40, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+          <img
+            src="/branding/GovLab_blanco.png"
+            alt="GovLab Universidad de La Sabana"
+            style={{ maxHeight: 28, width: 'auto', display: 'block' }}
+          />
         </div>
         <h1 className="auth-brand-title">AlumniCV</h1>
         <p className="auth-brand-desc">
