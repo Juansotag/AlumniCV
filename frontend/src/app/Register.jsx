@@ -67,17 +67,17 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-panel-brand" aria-hidden="true">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1.25rem', marginBottom: '1.75rem' }}>
           <img
-            src="/branding/Alumni blanco.png"
+            src="/branding/Alumni%20blanco.png"
             alt="Alumni Universidad de La Sabana"
-            style={{ maxHeight: 72, width: 'auto', display: 'block' }}
+            style={{ maxHeight: 72, width: 'auto', alignSelf: 'flex-start' }}
           />
           <div style={{ width: 40, height: 1, background: 'rgba(255,255,255,0.2)' }} />
           <img
             src="/branding/GovLab_blanco.png"
             alt="GovLab Universidad de La Sabana"
-            style={{ maxHeight: 28, width: 'auto', display: 'block' }}
+            style={{ maxHeight: 28, width: 'auto', alignSelf: 'flex-start' }}
           />
         </div>
         <h1 className="auth-brand-title">AlumniCV</h1>
