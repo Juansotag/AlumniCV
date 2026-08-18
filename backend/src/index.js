@@ -1,4 +1,14 @@
 import 'dotenv/config'
+
+// Polyfill para Math.sumPrecise que requiere pdf.js en Node < 22
+if (typeof Math.sumPrecise !== 'function') {
+  Math.sumPrecise = function(values) {
+    let sum = 0;
+    for (const v of values) sum += v;
+    return sum;
+  };
+}
+
 import express from 'express'
 import cors from 'cors'
 import cvRoutes from './routes/cv.js'

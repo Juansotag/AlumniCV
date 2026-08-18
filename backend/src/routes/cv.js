@@ -59,7 +59,8 @@ router.post('/upload', requireAuth, upload.single('cv'), async (req, res) => {
 
     // 1. Subir el archivo original
     const storagePath = `${req.user.id}/${Date.now()}-${req.file.originalname}`
-    const cvUrl = await uploadCvFile(fileBuffer, storagePath)
+    const freshBuffer = fs.readFileSync(filePath)
+    const cvUrl = await uploadCvFile(freshBuffer, storagePath)
 
     // 2. Registrar en cv_files, desactivando versiones anteriores
     await query(`UPDATE cv_files SET activa = FALSE WHERE usuario_id = $1`, [req.user.id])
