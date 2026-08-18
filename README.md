@@ -19,15 +19,15 @@ Herramienta institucional desarrollada por la Dirección de Alumni de la Univers
 - **Inventario Acumulado**: Todos los anuncios encontrados se almacenan acumulativamente en la base de datos para que el egresado no los pierda entre búsquedas.
 - **Prevención de Duplicados**: El backend valida que no se inserten vacantes duplicadas en el inventario basándose en el enlace único de LinkedIn.
 - **Filtrado y Ordenación**: Permite ordenar la tabla por afinidad %, vacante, empresa, fecha de publicación y capturado.
-- **Acción de Conversión**: El egresado decide qué anuncios del inventario se convierten a sus procesos activos de postulación (`+`), o los descarta del inventario (`✕`).
+- **Acción de Conversión**: El egresado decide qué anuncios del inventario se convierten a sus procesos activos de postulación (`+`), o los descarta del inventario (``).
 
 ### 4. Mis Procesos
 - **Seguimiento del Pipeline**: Un tracker de flujo lineal interactivo para documentar las fases de cada postulación:
-  - **Fases Personalizables**: Cuadrado (inicio), círculo (entrevista), triángulo (prueba técnica) y estrella (oferta / selección final).
-  - **Historial Editable**: Cada transición de estado (Aprobado, Rechazado, En proceso, Cancelado) guarda su fecha, hora y notas. Las fechas e historial de cambios se pueden editar o eliminar de forma independiente.
-  - **Modalidades e Iconos**: Configuración de modalidades (presencial, virtual, teléfono) mostrando iconos representativos (🖥 / 📞) dentro de la forma.
-  - **Alertas Dinámicas**: Mensajes automáticos de felicitación al ser seleccionado (estrella en verde) o de consolación en caso de rechazo o cancelación.
-  - **Cancelación en Cascada**: Marcar un hito como cancelado cancela automáticamente todas las fases subsecuentes del pipeline.
+ - **Fases Personalizables**: Cuadrado (inicio), círculo (entrevista), triángulo (prueba técnica) y estrella (oferta / selección final).
+ - **Historial Editable**: Cada transición de estado (Aprobado, Rechazado, En proceso, Cancelado) guarda su fecha, hora y notas. Las fechas e historial de cambios se pueden editar o eliminar de forma independiente.
+ - **Modalidades e Iconos**: Configuración de modalidades (presencial, virtual, teléfono) mostrando iconos representativos ( / ) dentro de la forma.
+ - **Alertas Dinámicas**: Mensajes automáticos de felicitación al ser seleccionado (estrella en verde) o de consolación en caso de rechazo o cancelación.
+ - **Cancelación en Cascada**: Marcar un hito como cancelado cancela automáticamente todas las fases subsecuentes del pipeline.
 
 ### 5. Generación de Documentos y Mis Documentos
 - **Generador con IA**: Diseña y descarga hojas de vida personalizadas, cartas de presentación y correos de postulación formales adaptados al puesto y empresa en formato de Word (`.docx`).
@@ -53,7 +53,7 @@ DATABASE_URL=postgresql://<usuario>:<contraseña>@<host>:<puerto>/postgres
 SUPABASE_URL=https://<proyecto-supabase>.supabase.co
 SUPABASE_ANON_KEY=<anon-key-publica>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key-privada>
-ANTHROPIC_API_KEY=sk-ant-api03-...   # API Key para Claude (Anthropic)
+ANTHROPIC_API_KEY=sk-ant-api03-... # API Key para Claude (Anthropic)
 FRONTEND_URL=https://<tu-frontend>.railway.app
 ```
 
@@ -71,23 +71,23 @@ VITE_SUPABASE_ANON_KEY=<anon-key-publica>
 
 ```
 AlumniCV/
-├── backend/            # API Servidor Node.js / Express
-│   ├── src/
-│   │   ├── routes/     # Endpoints (cv, profile, applications, documents, jobSearch, coach)
-│   │   ├── services/   # Lógica de negocio (scrapers, documentGenerator, cvService)
-│   │   ├── db/         # Migraciones SQL e inicialización PostgreSQL
-│   │   └── llm/        # Clientes e integraciones con Claude
-│   ├── package.json
-│   └── railway.toml    # Despliegue en Railway del backend
+├── backend/ # API Servidor Node.js / Express
+│ ├── src/
+│ │ ├── routes/ # Endpoints (cv, profile, applications, documents, jobSearch, coach)
+│ │ ├── services/ # Lógica de negocio (scrapers, documentGenerator, cvService)
+│ │ ├── db/ # Migraciones SQL e inicialización PostgreSQL
+│ │ └── llm/ # Clientes e integraciones con Claude
+│ ├── package.json
+│ └── railway.toml # Despliegue en Railway del backend
 │
-├── frontend/           # Aplicación Cliente React / Vite
-│   ├── src/
-│   │   ├── app/        # Vistas principales (NuevaBusqueda, MisProcesos, CoachLaboral, etc.)
-│   │   ├── components/ # Componentes (PipelineTracker, AssessmentResult, etc.)
-│   │   └── lib/        # Configuración de clientes (Supabase, AuthContext, API)
-│   ├── index.html
-│   ├── package.json
-│   └── railway.toml    # Despliegue en Railway del frontend
+├── frontend/ # Aplicación Cliente React / Vite
+│ ├── src/
+│ │ ├── app/ # Vistas principales (NuevaBusqueda, MisProcesos, CoachLaboral, etc.)
+│ │ ├── components/ # Componentes (PipelineTracker, AssessmentResult, etc.)
+│ │ └── lib/ # Configuración de clientes (Supabase, AuthContext, API)
+│ ├── index.html
+│ ├── package.json
+│ └── railway.toml # Despliegue en Railway del frontend
 │
-└── railway.toml        # Explicativo raíz para monorrepisitorio
+└── railway.toml # Explicativo raíz para monorrepisitorio
 ```
