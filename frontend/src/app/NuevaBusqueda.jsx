@@ -20,6 +20,42 @@ export default function NuevaBusqueda() {
   const [addingAll, setAddingAll] = useState(false)
   const [sortConfig, setSortConfig] = useState({ key: 'compatibilidad', direction: 'desc' })
 
+  // Estados para importación manual por ID o URL
+  const [manualInput, setManualInput] = useState('')
+  const [importingManual, setImportingManual] = useState(false)
+  const [manualSuccess, setManualSuccess] = useState(null)
+  const [manualError, setManualError] = useState(null)
+  const [showManualCard, setShowManualCard] = useState(false)
+
+  const handleManualImport = async (e) => {
+    e.preventDefault()
+    if (!manualInput.trim()) return
+
+    try {
+      setImportingManual(true)
+      setManualError(null)
+      setManualSuccess(null)
+
+      const data = await apiFetch('/job-search/import-by-id', {
+        method: 'POST',
+        body: JSON.stringify({ input: manualInput.trim() })
+      })
+
+      if (data.alreadyExists) {
+        setManualSuccess(`ℹ️ ${data.message}`)
+      } else {
+        setManualSuccess(`✓ ${data.message || 'Vacante importada'} (${data.result?.puesto} en ${data.result?.empresa})`)
+      }
+
+      setManualInput('')
+      await loadAccumulatedResults(false)
+    } catch (err) {
+      setManualError(err.message || 'No se pudo importar la vacante solicitada.')
+    } finally {
+      setImportingManual(false)
+    }
+  }
+
   const handleSort = (key) => {
     let direction = 'asc'
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -163,6 +199,72 @@ export default function NuevaBusqueda() {
         <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: 'var(--fs-md)' }}>
           Búsqueda de vacantes en LinkedIn acumulativas. Solo las vacantes que selecciones pasarán a ser tus procesos de postulación activos.
         </p>
+      </div>
+
+      {/* Sección de Importación Manual por ID o URL */}
+      <div className="card" style={{ padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'var(--bg-main)', border: '1px dashed var(--border-color)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <span style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              📥 ¿Tienes el ID o enlace de una vacante puntual en LinkedIn?
+            </span>
+            <p style={{ margin: '2px 0 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
+              Importa cualquier oferta manual: extraeremos sus datos, calcularemos la afinidad (%) con tu CV y la agregaremos al inventario.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowManualCard(prev => !prev)}
+            style={{
+              background: showManualCard ? 'transparent' : 'var(--c-blue-dark)',
+              color: showManualCard ? 'var(--text-primary)' : '#fff',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.4rem 0.85rem',
+              fontSize: 'var(--fs-xs)',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            {showManualCard ? 'Ocultar importador' : '+ Importar por ID / Enlace'}
+          </button>
+        </div>
+
+        {showManualCard && (
+          <form onSubmit={handleManualImport} style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 300px' }}>
+              <input
+                type="text"
+                required
+                placeholder="Ej. 4123456789 o https://www.linkedin.com/jobs/view/4123456789/..."
+                value={manualInput}
+                onChange={e => setManualInput(e.target.value)}
+                style={{ width: '100%', fontSize: 'var(--fs-sm)' }}
+                disabled={importingManual}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={importingManual || !manualInput.trim()}
+              className="btn-auth-submit"
+              style={{ padding: '0.65rem 1.25rem', whiteSpace: 'nowrap', fontSize: 'var(--fs-sm)' }}
+            >
+              {importingManual ? 'Extrayendo vacante...' : '📥 Importar al Dataset'}
+            </button>
+          </form>
+        )}
+
+        {manualSuccess && (
+          <div style={{ padding: '0.6rem 0.85rem', background: '#dcf5e6', color: 'var(--c-green)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)', fontWeight: 600 }}>
+            {manualSuccess}
+          </div>
+        )}
+
+        {manualError && (
+          <div style={{ padding: '0.6rem 0.85rem', background: '#fee2e2', color: 'var(--c-red)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)', fontWeight: 600 }}>
+            ⚠️ {manualError}
+          </div>
+        )}
       </div>
 
       {/* Formulario de Búsqueda Avanzada */}

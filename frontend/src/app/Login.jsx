@@ -46,7 +46,7 @@ export default function Login() {
       <div className="auth-panel-brand" aria-hidden="true">
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1.25rem', marginBottom: '1.75rem' }}>
           <img
-            src="/branding/Alumni%20blanco.png"
+            src="/branding/alumni_blanco.png"
             alt="Alumni Universidad de La Sabana"
             style={{ maxHeight: 72, width: 'auto', alignSelf: 'flex-start' }}
           />

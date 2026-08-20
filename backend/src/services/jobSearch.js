@@ -32,6 +32,37 @@ const SENIORITY_MAP = {
 }
 
 /**
+ * Extrae el Job ID numérico de LinkedIn a partir de un ID puro o una URL.
+ */
+export function extractLinkedInJobId(input) {
+  if (!input) return null
+  const str = String(input).trim()
+
+  // 1. Número directo (6 o más dígitos)
+  if (/^\d{6,}$/.test(str)) {
+    return str
+  }
+
+  // 2. Parámetro currentJobId=...
+  const currentJobIdMatch = str.match(/currentJobId=(\d{6,})/)
+  if (currentJobIdMatch) return currentJobIdMatch[1]
+
+  // 3. /jobs/view/123456789 o /jobs/view/titulo-123456789
+  const viewMatch = str.match(/\/jobs\/view\/(?:[^\/\?#]+-)?(\d{6,})/)
+  if (viewMatch) return viewMatch[1]
+
+  // 4. urn:li:jobPosting:123456789 o fs_normalized_jobPosting:123456789
+  const urnMatch = str.match(/jobPosting:(\d{6,})/)
+  if (urnMatch) return urnMatch[1]
+
+  // 5. Cualquier secuencia de 8 a 12 dígitos consecutivos
+  const anyDigits = str.match(/\b\d{8,12}\b/)
+  if (anyDigits) return anyDigits[0]
+
+  return null
+}
+
+/**
  * Obtiene detalles extendidos de una vacante (descripción, salario, postulantes).
  */
 export async function getJobDetails(jobId) {
@@ -69,6 +100,127 @@ export async function getJobDetails(jobId) {
   } catch (err) {
     console.warn(`Error al obtener detalles del trabajo ${jobId}:`, err.message)
     return { descripcion: '', postulantes: null, salario: 'No reporta' }
+  }
+}
+
+/**
+ * Extrae toda la información de una vacante puntual de LinkedIn a partir de su ID.
+ */
+export async function fetchJobPostingById(jobIdInput) {
+  try {
+    const cleanId = extractLinkedInJobId(jobIdInput)
+    if (!cleanId) {
+      throw new Error('No se pudo identificar un ID de vacante válido de LinkedIn.')
+    }
+
+    const url = `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/${cleanId}`
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': getRandomUserAgent(),
+        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
+      }
+    })
+
+    if (!res.ok) {
+      throw new Error(`LinkedIn no devolvió información para el ID ${cleanId} (HTTP ${res.status}).`)
+    }
+
+    const html = await res.text()
+    const $ = cheerio.load(html)
+
+    // Título / Puesto
+    let puesto = $(
+      '.top-card-layout__title, .topcard__title, .sub-nav-cta__header, .job-details-jobs-unified-top-card__job-title, h1, h2'
+    ).first().text().trim()
+
+    // Empresa
+    let empresa = $(
+      '.topcard__org-name-link, .topcard__flavor--black-link, .top-card-layout__first-subline a, a[data-tracking-control-name="public_jobs_topcard-org-name"]'
+    ).first().text().trim()
+
+    if (!empresa) {
+      empresa = $('.topcard__flavor:first-child').text().trim()
+    }
+
+    // Ubicación
+    let ubicacion = $(
+      '.topcard__flavor--bullet, .top-card-layout__first-subline .topcard__flavor:not(:has(a)), .job-details-jobs-unified-top-card__bullet, span.topcard__flavor'
+    ).last().text().trim()
+
+    // Descripción
+    const descripcionRaw = $('.show-more-less-html__markup, .description__text, .decorated-job-posting__details').text().trim()
+    const descripcion = descripcionRaw.replace(/\s+/g, ' ').slice(0, 2000)
+
+    // Postulantes
+    const postulantesText = $('.num-applicants__caption, .applicant-count').text().trim()
+    let postulantes = null
+    const match = postulantesText.match(/\d+/)
+    if (match) {
+      postulantes = parseInt(match[0], 10)
+    }
+
+    // Salario
+    const salarioText = $('.compensation-range, .salary, .job-details-jobs-unified-top-card__compensation').text().trim()
+    const salario = salarioText || 'No reporta'
+
+    // Modalidad / Seniority desde los criterios
+    let modalidad = 'hibrido'
+    let seniority = 'No especificado'
+
+    const criteriaItems = $('.description__job-criteria-item, .job-criteria__item')
+    criteriaItems.each((_, el) => {
+      const header = $(el).find('.description__job-criteria-subheader, .job-criteria__subheader').text().toLowerCase()
+      const text = $(el).find('.description__job-criteria-text, .job-criteria__text').text().trim()
+      if (header.includes('antigüedad') || header.includes('seniority')) {
+        seniority = text || seniority
+      }
+      if (header.includes('laboral') || header.includes('empleo') || header.includes('employment')) {
+        const lower = text.toLowerCase()
+        if (lower.includes('remoto') || lower.includes('remote')) modalidad = 'remoto'
+        else if (lower.includes('presencial') || lower.includes('on-site')) modalidad = 'presencial'
+        else if (lower.includes('híbrido') || lower.includes('hybrid')) modalidad = 'hibrido'
+      }
+    })
+
+    // Fecha
+    const fechaAttr = $('time').attr('datetime')
+    const fechaText = $('time, .posted-time-ago__text').text().trim() || 'Reciente'
+    const fechaPublicacion = fechaAttr ? new Date(fechaAttr).toISOString() : new Date().toISOString()
+
+    // Fallbacks si las clases no coincidieron
+    if (!puesto) {
+      const pageTitle = $('title').text().trim()
+      if (pageTitle) {
+        const parts = pageTitle.split('|')[0].split('-')
+        puesto = parts[0]?.trim() || 'Vacante de LinkedIn'
+        if (!empresa && parts[1]) empresa = parts[1].trim()
+      } else {
+        puesto = 'Vacante de LinkedIn'
+      }
+    }
+
+    if (!empresa) {
+      empresa = 'Empresa en LinkedIn'
+    }
+
+    return {
+      job_id: cleanId,
+      plataforma: 'LinkedIn',
+      puesto,
+      empresa,
+      ubicacion: ubicacion || 'Colombia',
+      modalidad,
+      seniority,
+      link: `https://www.linkedin.com/jobs/view/${cleanId}`,
+      fecha_publicacion: fechaPublicacion,
+      fecha_texto: fechaText,
+      descripcion_corta: descripcion || `Vacante para ${puesto} en ${empresa}.`,
+      postulantes,
+      salario
+    }
+  } catch (err) {
+    console.error(`Error al extraer vacante LinkedIn (${jobIdInput}):`, err.message)
+    throw err
   }
 }
 

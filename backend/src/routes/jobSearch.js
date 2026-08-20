@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { query } from '../db/index.js'
-import { searchLinkedInJobs, calculateCompatibility } from '../services/jobSearch.js'
+import { searchLinkedInJobs, calculateCompatibility, fetchJobPostingById, extractLinkedInJobId } from '../services/jobSearch.js'
 
 const router = Router()
 
@@ -142,6 +142,107 @@ router.post('/', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Error en POST /api/job-search:', err.message)
     res.status(500).json({ error: 'Error al realizar la búsqueda de vacantes: ' + err.message })
+  }
+})
+
+/**
+ * POST /api/job-search/import-by-id
+ * Importa una vacante específica por ID o URL de LinkedIn al dataset acumulado del egresado.
+ */
+router.post('/import-by-id', requireAuth, async (req, res) => {
+  const { jobId, url, input, targetInput: explicitTarget } = req.body
+  const targetInput = jobId || url || input || explicitTarget
+
+  if (!targetInput) {
+    return res.status(400).json({ error: 'Debes proporcionar un ID de vacante o un enlace de LinkedIn' })
+  }
+
+  const cleanId = extractLinkedInJobId(targetInput)
+  if (!cleanId) {
+    return res.status(400).json({ error: 'No se pudo identificar un ID válido en el texto o enlace ingresado' })
+  }
+
+  try {
+    const cleanLink = `https://www.linkedin.com/jobs/view/${cleanId}`
+
+    // 1. Verificar si ya existe en el dataset del usuario
+    const { rows: [existing] } = await query(
+      `SELECT r.id, r.search_id, r.plataforma, r.empresa, r.puesto, r.link, r.compatibilidad,
+              r.descripcion_corta, r.postulantes, r.ubicacion, r.modalidad, r.fecha_publicacion,
+              r.created_at AS fecha_captura,
+              (SELECT EXISTS (
+                SELECT 1 FROM applications a 
+                WHERE a.usuario_id = $1 AND a.job_search_result_id = r.id
+              )) AS ya_agregado
+       FROM job_search_results r
+       JOIN job_searches s ON r.search_id = s.id
+       WHERE s.usuario_id = $1 AND (r.link = $2 OR r.link LIKE $3)`,
+      [req.user.id, cleanLink, `%${cleanId}%`]
+    )
+
+    if (existing) {
+      return res.status(200).json({
+        message: 'Esta vacante ya se encuentra en tu inventario de anuncios.',
+        alreadyExists: true,
+        result: existing
+      })
+    }
+
+    // 2. Extraer datos de la vacante de LinkedIn
+    const jobData = await fetchJobPostingById(cleanId)
+
+    // 3. Obtener perfil de usuario para cálculo de afinidad
+    const { rows: [userProfile] } = await query(
+      `SELECT habilidades_tecnicas, experiencia, educacion_formal FROM usuarios WHERE id = $1`,
+      [req.user.id]
+    )
+
+    const compatibilidad = calculateCompatibility(jobData, userProfile)
+
+    // 4. Registrar la búsqueda/importación para satisfacer la foreign key search_id
+    const { rows: [searchRecord] } = await query(
+      `INSERT INTO job_searches (usuario_id, params, status, completed_at)
+       VALUES ($1, $2::jsonb, 'done', NOW())
+       RETURNING *`,
+      [req.user.id, JSON.stringify({ manual_import: true, job_id: cleanId, puesto: jobData.puesto, empresa: jobData.empresa })]
+    )
+
+    // 5. Insertar en job_search_results
+    const { rows: [insertedResult] } = await query(
+      `INSERT INTO job_search_results (
+        search_id, plataforma, empresa, puesto, link, compatibilidad,
+        descripcion_corta, postulantes, ubicacion, modalidad, fecha_publicacion
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING id, search_id, plataforma, empresa, puesto, link, compatibilidad,
+                 descripcion_corta, postulantes, ubicacion, modalidad, fecha_publicacion,
+                 created_at AS fecha_captura`,
+      [
+        searchRecord.id,
+        jobData.plataforma,
+        jobData.empresa,
+        jobData.puesto,
+        jobData.link,
+        compatibilidad,
+        jobData.descripcion_corta,
+        jobData.postulantes,
+        jobData.ubicacion,
+        jobData.modalidad,
+        jobData.fecha_publicacion
+      ]
+    )
+
+    res.status(201).json({
+      message: 'Vacante importada y agregada exitosamente al inventario.',
+      alreadyExists: false,
+      result: {
+        ...insertedResult,
+        ya_agregado: false
+      }
+    })
+  } catch (err) {
+    console.error('Error en POST /api/job-search/import-by-id:', err.message)
+    res.status(500).json({ error: 'Error al importar la vacante: ' + err.message })
   }
 })
 
