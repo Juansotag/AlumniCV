@@ -1,19 +1,28 @@
 import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 
 // Modelos según complejidad
 export const MODEL_FRONTIER = process.env.OPENAI_MODEL_FRONTIER || 'gpt-4o'      // Assessment profundo, adaptación de documentos .docx, Coach laboral
 export const MODEL_FAST = process.env.OPENAI_MODEL_FAST || 'gpt-4o-mini'        // Extracción estructurada de CV, tareas rápidas y económicas
 
-const hasOpenAI = Boolean(process.env.OPENAI_API_KEY)
-const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY)
-
-if (!hasOpenAI) {
-  console.warn('[AVISO] OPENAI_API_KEY no definida en .env — por favor configúrala para habilitar los modelos de OpenAI.')
+export function getOpenAI() {
+  const key = process.env.OPENAI_API_KEY?.trim()
+  if (!key) return null
+  return new OpenAI({ apiKey: key })
 }
 
-export const openai = hasOpenAI
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null
+export function getAnthropic() {
+  const key = process.env.ANTHROPIC_API_KEY?.trim()
+  if (!key) return null
+  return new Anthropic({ apiKey: key })
+}
+
+export const openai = getOpenAI()
+export const anthropic = getAnthropic()
+
+if (!openai && !anthropic) {
+  console.warn('[AVISO] Ni OPENAI_API_KEY ni ANTHROPIC_API_KEY están definidas en las variables de entorno.')
+}
 
 /**
  * Ejecuta una llamada asíncrona con reintento automático y retroceso exponencial (Backoff).
@@ -34,53 +43,58 @@ async function withRetry(fn, { maxRetries = 3, baseDelayMs = 1000 } = {}) {
       }
 
       const delay = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200)
-      console.warn(`[OpenAI QA Retry] Error ${status || err.code}. Reintentando intento ${attempt}/${maxRetries} en ${delay}ms...`)
+      console.warn(`[AI QA Retry] Error ${status || err.code}. Reintentando intento ${attempt}/${maxRetries} en ${delay}ms...`)
       await new Promise(res => setTimeout(res, delay))
     }
   }
 }
 
 /**
- * Llama a OpenAI pidiendo una respuesta en JSON puro y la parsea.
- * Utiliza response_format: { type: 'json_object' } para garantizar JSON válido.
+ * Llama al LLM pidiendo una respuesta en JSON puro y la parsea.
+ * Utiliza response_format: { type: 'json_object' } en OpenAI para garantizar JSON válido.
  * Incluye reintento automático ante Rate Limits (429) y validación de respuesta.
  *
  * @param {string} prompt
  * @param {{ maxTokens?: number, model?: string }} options
  */
 export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FRONTIER } = {}) {
-  if (openai) {
-    const rawText = await withRetry(async () => {
-      const response = await openai.chat.completions.create({
-        model,
-        max_tokens: maxTokens,
-        response_format: { type: 'json_object' },
-        messages: [{ role: 'user', content: prompt }],
-      })
-      return response.choices?.[0]?.message?.content ?? ''
-    })
+  const openAiClient = getOpenAI()
 
-    if (!rawText || !rawText.trim()) {
-      throw new Error('El modelo de IA devolvió una respuesta vacía')
-    }
-
+  if (openAiClient) {
     try {
-      return JSON.parse(rawText)
-    } catch (parseErr) {
-      // Fallback por si vinieran fences markdown
-      const match = rawText.match(/\{[\s\S]*\}/)
-      if (match) return JSON.parse(match[0])
-      throw new Error(`Error al procesar JSON de OpenAI: ${parseErr.message}`)
+      const rawText = await withRetry(async () => {
+        const response = await openAiClient.chat.completions.create({
+          model,
+          max_tokens: maxTokens,
+          response_format: { type: 'json_object' },
+          messages: [{ role: 'user', content: prompt }],
+        })
+        return response.choices?.[0]?.message?.content ?? ''
+      })
+
+      if (!rawText || !rawText.trim()) {
+        throw new Error('El modelo de IA devolvió una respuesta vacía')
+      }
+
+      try {
+        return JSON.parse(rawText)
+      } catch (parseErr) {
+        const match = rawText.match(/\{[\s\S]*\}/)
+        if (match) return JSON.parse(match[0])
+        throw new Error(`Error al procesar JSON de OpenAI: ${parseErr.message}`)
+      }
+    } catch (openAiErr) {
+      const anthropicClient = getAnthropic()
+      if (!anthropicClient) throw openAiErr
+      console.warn('[Fallback IA] OpenAI falló, recurriendo a Anthropic Claude...', openAiErr.message)
     }
   }
 
   // Fallback secundario a Anthropic si existiera la key
-  if (process.env.ANTHROPIC_API_KEY) {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    
+  const anthropicClient = getAnthropic()
+  if (anthropicClient) {
     const rawText = await withRetry(async () => {
-      const message = await anthropic.messages.create({
+      const message = await anthropicClient.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }],
@@ -98,7 +112,7 @@ export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FRO
     return JSON.parse(jsonMatch[0])
   }
 
-  throw new Error('OPENAI_API_KEY no está configurada en .env')
+  throw new Error('No hay proveedor de IA configurado. Por favor define OPENAI_API_KEY o ANTHROPIC_API_KEY en las variables de entorno.')
 }
 
 /**
@@ -110,26 +124,32 @@ export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FRO
  * @param {{ model?: string }} options
  */
 export async function chatCompletion(systemPrompt, messages, { model = MODEL_FRONTIER } = {}) {
-  if (openai) {
-    return await withRetry(async () => {
-      const response = await openai.chat.completions.create({
-        model,
-        max_tokens: 2048,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
+  const openAiClient = getOpenAI()
+
+  if (openAiClient) {
+    try {
+      return await withRetry(async () => {
+        const response = await openAiClient.chat.completions.create({
+          model,
+          max_tokens: 2048,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages,
+          ],
+        })
+        return response.choices?.[0]?.message?.content ?? ''
       })
-      return response.choices?.[0]?.message?.content ?? ''
-    })
+    } catch (openAiErr) {
+      const anthropicClient = getAnthropic()
+      if (!anthropicClient) throw openAiErr
+      console.warn('[Fallback IA] OpenAI chat falló, recurriendo a Anthropic Claude...', openAiErr.message)
+    }
   }
 
-  if (process.env.ANTHROPIC_API_KEY) {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    
+  const anthropicClient = getAnthropic()
+  if (anthropicClient) {
     return await withRetry(async () => {
-      const response = await anthropic.messages.create({
+      const response = await anthropicClient.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2048,
         system: systemPrompt,
@@ -142,5 +162,5 @@ export async function chatCompletion(systemPrompt, messages, { model = MODEL_FRO
     })
   }
 
-  throw new Error('OPENAI_API_KEY no está configurada en .env')
+  throw new Error('No hay proveedor de IA configurado. Por favor define OPENAI_API_KEY o ANTHROPIC_API_KEY en las variables de entorno.')
 }
