@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, UploadCloud, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, UploadCloud, Loader2, AlertCircle, Info, RefreshCw } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 import { apiFetch } from '../lib/api.js'
 import Header from '../components/Header.jsx'
@@ -24,21 +24,47 @@ export default function Profile() {
   const fileInputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [aviso, setAviso] = useState('')
 
   const usuario = profile?.usuario
   const assessment = profile?.ultimo_assessment
 
-  const handleReuploadClick = () => fileInputRef.current?.click()
+  const handleReuploadClick = () => {
+    if (!uploading) fileInputRef.current?.click()
+  }
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || uploading) return
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Por favor selecciona un archivo en formato PDF (.pdf).')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    if (file.size < 500) {
+      setError('El archivo seleccionado parece estar vacío o dañado (menos de 500 bytes).')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      setError('El archivo supera el tamaño máximo permitido de 25 MB.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
     setError('')
+    setAviso('')
     setUploading(true)
     const formData = new FormData()
     formData.append('cv', file)
     try {
-      await apiFetch('/cv/upload', { method: 'POST', body: formData })
+      const data = await apiFetch('/cv/upload', { method: 'POST', body: formData })
+      if (data?.aviso) {
+        setAviso(data.aviso)
+      }
       await refreshProfile()
     } catch (err) {
       setError('No se pudo procesar el CV: ' + err.message)
@@ -71,9 +97,32 @@ export default function Profile() {
           {/* Reintentar assessment subiendo un CV nuevo */}
           <div className="card">
             <h3 style={{ margin: '0 0 0.5rem', color: 'var(--text-primary)' }}>Actualizar CV y reintentar assessment</h3>
-            <p style={{ margin: '0 0 1rem', fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
-              Subir un CV nuevo reescribe todos los campos de tu perfil y genera un assessment nuevo.
+            <p style={{ margin: '0 0 0.5rem', fontSize: 'var(--fs-sm)', color: 'var(--text-muted)' }}>
+              Subir un CV nuevo reescribe todos los campos de tu perfil y genera un assessment nuevo con IA.
             </p>
+            <p style={{ margin: '0 0 1rem', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              Soportamos hojas de vida en español o inglés, con diseño o doble columna (máximo 5 páginas analizadas).
+            </p>
+
+            {aviso && (
+              <div style={{
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.75rem 1rem',
+                color: '#1e40af',
+                fontSize: 'var(--fs-sm)',
+                lineHeight: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1rem'
+              }}>
+                <Info size={18} style={{ flexShrink: 0 }} />
+                <div>{aviso}</div>
+              </div>
+            )}
+
             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" style={{ display: 'none' }} />
             <button
               className="btn-auth-submit"
@@ -82,12 +131,24 @@ export default function Profile() {
               disabled={uploading}
             >
               {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-              {uploading ? 'Procesando…' : 'Subir CV nuevo'}
+              {uploading ? 'Leyendo CV con IA… (puede tardar hasta 30s)' : 'Subir CV nuevo'}
             </button>
             {error && (
-              <p role="alert" style={{ color: 'var(--c-red)', fontSize: 'var(--fs-sm)', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <AlertCircle size={15} /> {error}
-              </p>
+              <div role="alert" style={{
+                background: '#fee2e2',
+                border: '1px solid #fca5a5',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.75rem 1rem',
+                color: 'var(--c-red)',
+                fontSize: 'var(--fs-sm)',
+                marginTop: '0.75rem',
+                lineHeight: 1.5
+              }}>
+                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                  <AlertCircle size={15} /> Error al procesar el CV
+                </div>
+                <div>{error}</div>
+              </div>
             )}
           </div>
 

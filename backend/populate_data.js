@@ -17,13 +17,13 @@ async function populate() {
   }
 
   try {
-    console.log('🧹 Limpiando tablas de base de datos...')
+    console.log('[INFO] Limpiando tablas de base de datos...')
     await pool.query('DELETE FROM documents')
     await pool.query('DELETE FROM applications')
     await pool.query('DELETE FROM job_search_results')
     await pool.query('DELETE FROM job_searches')
 
-    console.log('➕ Creando búsqueda de empleo de referencia...')
+    console.log('[INFO] Creando búsqueda de empleo de referencia...')
     const { rows: [search] } = await pool.query(
       `INSERT INTO job_searches (usuario_id, params, status, completed_at)
        VALUES ($1, $2::jsonb, 'done', NOW())
@@ -54,7 +54,7 @@ async function populate() {
       { name: 'Bavaria', role: 'Data Scientist Senior', mode: 'virtual', sal: '$9.000.000', post: 220, sen: 'mid_senior' }
     ]
 
-    console.log('➕ Creando anuncios e inventarios...')
+    console.log('[INFO] Creando anuncios e inventarios...')
     const jobResults = []
     for (const emp of empresas) {
       const { rows: [result] } = await pool.query(
@@ -75,7 +75,7 @@ async function populate() {
       jobResults.push(result)
     }
 
-    console.log('➕ Creando procesos de selección (applications)...')
+    console.log('[INFO] Creando procesos de selección (applications)...')
     const createdApps = []
     
     // ── 1. Bancolombia (Fracasado - Rechazado tras entrevista) ────────────────
@@ -208,7 +208,7 @@ async function populate() {
       p11, p12, p13, p14, p15, p16, p17, p18, p19, p20
     ]
 
-    console.log('➕ Insertando procesos...')
+    console.log('[INFO] Insertando procesos...')
     for (let i = 0; i < 20; i++) {
       const emp = empresas[i]
       const res = jobResults[i]
@@ -231,7 +231,7 @@ async function populate() {
       createdApps.push(app)
     }
 
-    console.log('➕ Generando CVs para cada 3 procesos (6 documentos en total)...')
+    console.log('[INFO] Generando CVs para cada 3 procesos (6 documentos en total)...')
     const indicesConDocumentos = [2, 5, 8, 11, 14, 17] // Procesos 3, 6, 9, 12, 15, 18
     for (const idx of indicesConDocumentos) {
       const app = createdApps[idx]
@@ -248,9 +248,9 @@ async function populate() {
       )
     }
 
-    console.log('✅ Base de datos poblada exitosamente con 20 procesos de selección (10 fallidos, 8 en proceso, 2 seleccionados) y 6 CVs asociados.')
+    console.log('[OK] Base de datos poblada exitosamente con 20 procesos de selección (10 fallidos, 8 en proceso, 2 seleccionados) y 6 CVs asociados.')
   } catch (err) {
-    console.error('❌ Error general de carga:', err.message)
+    console.error('[ERROR] general de carga:', err.message)
   } finally {
     await pool.end()
   }

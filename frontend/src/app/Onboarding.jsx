@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { UploadCloud, Loader2, ArrowRight, AlertCircle } from 'lucide-react'
+import { UploadCloud, Loader2, ArrowRight, AlertCircle, Info, RefreshCw } from 'lucide-react'
 import { apiFetch } from '../lib/api.js'
 import Header from '../components/Header.jsx'
 import AssessmentResult from '../components/AssessmentResult.jsx'
@@ -17,11 +17,33 @@ export default function Onboarding() {
   const [error, setError] = useState('')
   const [result, setResult] = useState(null) // { usuario, cv_file, assessment }
 
-  const handleUploadClick = () => fileInputRef.current?.click()
+  const handleUploadClick = () => {
+    if (!uploading) fileInputRef.current?.click()
+  }
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || uploading) return
+
+    // Pre-validaciones QA en cliente antes de enviar la petición
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Por favor selecciona un archivo en formato PDF (.pdf).')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    if (file.size < 500) {
+      setError('El archivo seleccionado parece estar vacío o dañado (menos de 500 bytes).')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      setError('El archivo supera el tamaño máximo permitido de 25 MB.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
     setError('')
     setUploading(true)
 
@@ -64,8 +86,7 @@ export default function Onboarding() {
             color: '#92400e',
             lineHeight: 1.5
           }}>
-            <strong>⚠️ Requisito del PDF:</strong> Tu CV debe tener texto seleccionable (no escaneado ni hecho en Canva).
-            Si no puedes seleccionar el texto en tu PDF, ábrelo en Word o Google Docs y expórtalo de nuevo como PDF.
+            <strong>Nota sobre tu PDF:</strong> Soportamos hojas de vida diseñadas (Canva, Word, doble columna, español o inglés) siempre que tengan texto digital seleccionable. <em>Para documentos extensos, se procesarán automáticamente las primeras 5 páginas.</em>
           </div>
 
           {!result && (
@@ -75,8 +96,8 @@ export default function Onboarding() {
                 {uploading ? (
                   <>
                     <Loader2 size={36} className="animate-spin" style={{ color: 'var(--c-blue-light)' }} />
-                    <span className="cv-dropzone-text" style={{ fontWeight: 600 }}>Leyendo tu CV y corriendo el assessment…</span>
-                    <span className="cv-dropzone-subtext">Puede tardar hasta un minuto.</span>
+                    <span className="cv-dropzone-text" style={{ fontWeight: 600 }}>Leyendo tu CV y ejecutando el análisis con IA…</span>
+                    <span className="cv-dropzone-subtext">Puede tardar entre 15 y 30 segundos (ante alta demanda de OpenAI). Por favor no cierres la ventana.</span>
                   </>
                 ) : (
                   <>
@@ -100,6 +121,26 @@ export default function Onboarding() {
                     <AlertCircle size={15} /> Error al procesar el CV
                   </div>
                   <div>{error}</div>
+                  <button
+                    type="button"
+                    onClick={handleUploadClick}
+                    style={{
+                      marginTop: '0.75rem',
+                      background: 'var(--c-red)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 'var(--radius-xs)',
+                      padding: '0.35rem 0.85rem',
+                      fontSize: 'var(--fs-xs)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <RefreshCw size={13} /> Seleccionar otro archivo o reintentar
+                  </button>
                 </div>
               )}
             </>
@@ -107,6 +148,23 @@ export default function Onboarding() {
 
           {result && (
             <>
+              {result.aviso && (
+                <div style={{
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem 1rem',
+                  color: '#1e40af',
+                  fontSize: 'var(--fs-sm)',
+                  lineHeight: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <Info size={18} style={{ flexShrink: 0 }} />
+                  <div>{result.aviso}</div>
+                </div>
+              )}
               <AssessmentResult respuesta={result.assessment?.respuesta_json} pdfUrl={result.assessment?.pdf_url} />
               <button className="btn-auth-submit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 onClick={() => navigate('/dashboard')}>

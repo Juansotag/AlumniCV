@@ -22,7 +22,7 @@ const MIGRATIONS_DIR = path.join(__dirname, 'migrations')
 
 async function migrate() {
   if (!process.env.DATABASE_URL) {
-    console.error('❌  DATABASE_URL no está definida en .env')
+    console.error('[ERROR] DATABASE_URL no está definida en .env')
     process.exit(1)
   }
 
@@ -34,7 +34,7 @@ async function migrate() {
   })
 
   await client.connect()
-  console.log('✅  Conectado a PostgreSQL\n')
+  console.log('[OK] Conectado a PostgreSQL\n')
 
   try {
     // Tabla de control de migraciones (idempotente)
@@ -58,13 +58,13 @@ async function migrate() {
       )
 
       if (rows.length > 0) {
-        console.log(`⏭   ${file} — ya aplicada, omitiendo`)
+        console.log(`[OMITIDA] ${file} — ya aplicada`)
         continue
       }
 
       // Leer y ejecutar el SQL
       const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')
-      console.log(`▶   Aplicando ${file}…`)
+      console.log(`[APLICANDO] ${file}…`)
 
       await client.query('BEGIN')
       try {
@@ -74,15 +74,15 @@ async function migrate() {
           [file]
         )
         await client.query('COMMIT')
-        console.log(`✅  ${file} aplicada correctamente`)
+        console.log(`[OK] ${file} aplicada correctamente`)
       } catch (err) {
         await client.query('ROLLBACK')
-        console.error(`❌  Error en ${file}:`, err.message)
+        console.error(`[ERROR] en ${file}:`, err.message)
         throw err
       }
     }
 
-    console.log('\n🌱  Migraciones completadas.')
+    console.log('\n[OK] Migraciones completadas.')
   } finally {
     await client.end()
   }

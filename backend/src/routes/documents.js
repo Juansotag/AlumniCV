@@ -100,7 +100,7 @@ Genera un JSON con el siguiente esquema exacto:
 }
 `
 
-    console.log('🤖 Generando contenido de documentos con Claude LLM...')
+    console.log('[LLM] Generando contenido de documentos...')
     const llmResult = await completeJson(promptGen)
     const generatedDocs = []
 

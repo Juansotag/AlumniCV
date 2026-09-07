@@ -16,9 +16,9 @@ async function backfill() {
       WHERE a.job_search_result_id = r.id
         AND (a.link IS NULL OR a.link = '')
     `)
-    console.log(`✅ Reparados ${rowCount} registros de aplicaciones anteriores sin enlace.`)
+    console.log(`[OK] Reparados ${rowCount} registros de aplicaciones anteriores sin enlace.`)
   } catch (err) {
-    console.error('❌ Error de backfill:', err.message)
+    console.error('[ERROR] de backfill:', err.message)
   } finally {
     await pool.end()
   }

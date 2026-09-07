@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ExternalLink } from 'lucide-react'
 import { apiFetch } from '../lib/api.js'
 
 export default function NuevaBusqueda() {
@@ -42,9 +43,9 @@ export default function NuevaBusqueda() {
       })
 
       if (data.alreadyExists) {
-        setManualSuccess(`ℹ️ ${data.message}`)
+        setManualSuccess(data.message)
       } else {
-        setManualSuccess(`✓ ${data.message || 'Vacante importada'} (${data.result?.puesto} en ${data.result?.empresa})`)
+        setManualSuccess(`${data.message || 'Vacante importada'} (${data.result?.puesto} en ${data.result?.empresa})`)
       }
 
       setManualInput('')
@@ -169,7 +170,7 @@ export default function NuevaBusqueda() {
 
       // Actualizar todos los ids localmente como agregados
       setResults(prev => prev.map(r => ids.includes(r.id) ? { ...r, ya_agregado: true } : r))
-      alert(`✓ ${data.added} proceso(s) agregados. ${data.skipped ? `${data.skipped} ya estaban en tu lista.` : ''}`)
+      alert(`${data.added} proceso(s) agregados. ${data.skipped ? `${data.skipped} ya estaban en tu lista.` : ''}`)
     } catch (err) {
       alert('Error al agregar todos: ' + err.message)
     } finally {
@@ -206,7 +207,7 @@ export default function NuevaBusqueda() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
             <span style={{ fontWeight: 700, fontSize: 'var(--fs-sm)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              📥 ¿Tienes el ID o enlace de una vacante puntual en LinkedIn?
+              ¿Tienes el ID o enlace de una vacante puntual en LinkedIn?
             </span>
             <p style={{ margin: '2px 0 0 0', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
               Importa cualquier oferta manual: extraeremos sus datos, calcularemos la afinidad (%) con tu CV y la agregaremos al inventario.
@@ -249,7 +250,7 @@ export default function NuevaBusqueda() {
               className="btn-auth-submit"
               style={{ padding: '0.65rem 1.25rem', whiteSpace: 'nowrap', fontSize: 'var(--fs-sm)' }}
             >
-              {importingManual ? 'Extrayendo vacante...' : '📥 Importar al Dataset'}
+              {importingManual ? 'Extrayendo vacante...' : 'Importar al Dataset'}
             </button>
           </form>
         )}
@@ -262,7 +263,7 @@ export default function NuevaBusqueda() {
 
         {manualError && (
           <div style={{ padding: '0.6rem 0.85rem', background: '#fee2e2', color: 'var(--c-red)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)', fontWeight: 600 }}>
-            ⚠️ {manualError}
+            {manualError}
           </div>
         )}
       </div>
@@ -494,9 +495,9 @@ export default function NuevaBusqueda() {
                               href={job.link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              style={{ marginRight: '0.5rem', color: 'var(--c-blue-light)', fontWeight: 600, fontSize: 'var(--fs-xs)' }}
+                              style={{ marginRight: '0.5rem', color: 'var(--c-blue-light)', fontWeight: 600, fontSize: 'var(--fs-xs)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                             >
-                              Ver ↗
+                              Ver <ExternalLink size={11} />
                             </a>
                           )}
                           <button

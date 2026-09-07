@@ -32,117 +32,124 @@ const SENIORITY_MAP = {
 }
 
 /**
- * Mapeo de textos de ubicación comunes a geoIds internos de LinkedIn.
- * LinkedIn Guest API ignora el texto libre para ubicaciones fuera de LATAM;
- * usar el geoId garantiza resultados precisos internacionalmente.
+ * Diccionario de traducción de ubicaciones comunes en español a nombres geográficos
+ * en inglés que LinkedIn Guest API comprende de forma fiable para búsquedas internacionales.
  */
-const GEO_ID_MAP = {
-  // Latinoamérica
-  'colombia':          '101097007',
-  'bogotá':            '100876414',
-  'bogota':            '100876414',
-  'medellín':          '100643475',
-  'medellin':          '100643475',
-  'cali':              '104446813',
-  'barranquilla':      '103366518',
-  'mexico':            '103323778',
-  'méxico':            '103323778',
-  'ciudad de mexico':  '103743442',
-  'cdmx':              '103743442',
-  'argentina':         '100446943',
-  'buenos aires':      '104723004',
-  'chile':             '104621616',
-  'santiago':          '103791310',
-  'peru':              '102927786',
-  'perú':              '102927786',
-  'lima':              '102174412',
-  'ecuador':           '103987880',
-  'quito':             '106054690',
-  'brasil':            '106057199',
-  'brazil':            '106057193',
-  'sao paulo':         '101282782',
-  'venezuela':         '101490751',
-  'panama':            '100808673',
-  'panamá':            '100808673',
-  'costa rica':        '101739942',
-  'uruguay':           '100867946',
-  'paraguay':          '104571694',
-  'bolivia':           '104082552',
-  // Europa
-  'spain':             '105646813',
-  'españa':            '105646813',
-  'madrid':            '100994331',
-  'barcelona':         '101386496',
-  'united kingdom':    '101165590',
-  'uk':                '101165590',
-  'london':            '101165590',
-  'germany':           '101282230',
-  'alemania':          '101282230',
-  'france':            '105015875',
-  'francia':           '105015875',
-  'paris':             '101536770',
-  'netherlands':       '102890719',
-  'países bajos':      '102890719',
-  'italy':             '103350119',
-  'italia':            '103350119',
-  'portugal':          '100364837',
-  'switzerland':       '106693272',
-  'suiza':             '106693272',
-  // Norteamérica
-  'united states':     '103644278',
-  'usa':               '103644278',
-  'estados unidos':    '103644278',
-  'new york':          '102571732',
-  'new york city':     '102571732',
-  'nyc':               '102571732',
-  'san francisco':     '102277331',
-  'miami':             '102093823',
-  'austin':            '100523070',
-  'canada':            '101174742',
-  'canadá':            '101174742',
-  'toronto':           '100025096',
-  // Asia / Oceanía
-  'australia':         '101452733',
-  'sydney':            '105204395',
-  'singapore':         '102454443',
-  'singapur':          '102454443',
-  'india':             '102713980',
-  'remote':            '102277331',  // Fallback para "remote" sin ubicación
+const LOCATION_TRANSLATIONS = {
+  // Países Europa
+  'espana': 'Spain',
+  'españa': 'Spain',
+  'alemania': 'Germany',
+  'francia': 'France',
+  'reino unido': 'United Kingdom',
+  'inglaterra': 'United Kingdom',
+  'gran bretana': 'United Kingdom',
+  'gran bretaña': 'United Kingdom',
+  'uk': 'United Kingdom',
+  'italia': 'Italy',
+  'suiza': 'Switzerland',
+  'paises bajos': 'Netherlands',
+  'países bajos': 'Netherlands',
+  'holanda': 'Netherlands',
+  'belgica': 'Belgium',
+  'bélgica': 'Belgium',
+  'portugal': 'Portugal',
+  'irlanda': 'Ireland',
+  'suecia': 'Sweden',
+  'noruega': 'Norway',
+  'dinamarca': 'Denmark',
+  'finlandia': 'Finland',
+  'polonia': 'Poland',
+  'austria': 'Austria',
+  // Países Norteamérica y Oceanía
+  'estados unidos': 'United States',
+  'eeuu': 'United States',
+  'ee.uu.': 'United States',
+  'ee.uu': 'United States',
+  'usa': 'United States',
+  'canada': 'Canada',
+  'canadá': 'Canada',
+  'australia': 'Australia',
+  'nueva zelanda': 'New Zealand',
+  'nueva zelandia': 'New Zealand',
+  'japon': 'Japan',
+  'japón': 'Japan',
+  'singapur': 'Singapore',
+  // Ciudades globales frecuentes
+  'londres': 'London',
+  'paris': 'Paris',
+  'parís': 'Paris',
+  'roma': 'Rome',
+  'berlin': 'Berlin',
+  'berlín': 'Berlin',
+  'munich': 'Munich',
+  'múnich': 'Munich',
+  'nueva york': 'New York',
+  'sidney': 'Sydney',
+  'ginebra': 'Geneva',
+  'bruselas': 'Brussels',
+  'lisboa': 'Lisbon',
+  'tokio': 'Tokyo'
 }
 
 /**
- * Dado un texto de ubicación libre, devuelve el geoId de LinkedIn si existe en el mapeo.
+ * Normaliza y traduce una ubicación libre para que LinkedIn Guest API devuelva
+ * resultados precisos en cualquier parte del mundo (tanto en LATAM como en Europa, Norteamérica, etc.).
  * @param {string} location
- * @returns {string|null}
+ * @returns {string}
  */
-function resolveGeoId(location) {
-  if (!location) return null
-  const normalized = location.toLowerCase().trim()
-  return GEO_ID_MAP[normalized] ?? null
+function resolveSearchLocation(location) {
+  if (!location) return 'Colombia'
+  const trimmed = location.trim()
+  const normalizedKey = trimmed
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim()
+
+  return LOCATION_TRANSLATIONS[normalizedKey] || trimmed
 }
 
-/**
- * Palabras clave por modalidad para filtrar resultados post-scraping.
- * LinkedIn Guest API no garantiza el filtro f_WT para presencial/híbrido.
- */
-const MODALIDAD_KEYWORDS = {
-  presencial: ['presencial', 'on-site', 'on site', 'in-office', 'in office', 'in person', 'en oficina'],
-  remoto:     ['remoto', 'remote', 'teletrabajo', 'trabajo desde casa', 'work from home', 'wfh'],
-  hibrido:    ['híbrido', 'hibrido', 'hybrid', 'mixto']
-}
+const REMOTE_KEYWORDS = [
+  'remoto', 'remote', 'teletrabajo', 'trabajo desde casa', 'work from home', 'wfh',
+  '100% remoto', 'completamente remoto', 'fully remote', 'de forma remota'
+]
+
+const HYBRID_KEYWORDS = [
+  'híbrido', 'hibrido', 'hybrid', 'mixto', 'semipresencial', 'semi-presencial', 'hibrida', 'híbrida',
+  'esquema mixto', 'modalidad mixta', 'días en casa', 'dias en casa', 'días en oficina', 'dias en oficina'
+]
+
+const PRESENCIAL_KEYWORDS = [
+  'presencial', 'on-site', 'on site', 'in-office', 'in office', 'in person', 'en oficina', 'en sede', 'en sitio', 'en planta', 'planta'
+]
 
 /**
- * Determina si una vacante coincide con la modalidad solicitada.
- * Analiza el texto de la descripción y el campo modalidad del card.
+ * Determina la modalidad de una vacante a partir del título, descripción y ubicación.
  * @param {object} job
- * @param {string} modalidadFiltro - 'remoto'|'presencial'|'hibrido'|'todas'
- * @returns {boolean}
+ * @returns {'remoto'|'hibrido'|'presencial'}
  */
-function jobMatchesModalidad(job, modalidadFiltro) {
-  if (!modalidadFiltro || modalidadFiltro === 'todas') return true
-  const searchText = `${job.modalidad ?? ''} ${job.descripcion_corta ?? ''} ${job.puesto ?? ''}`.toLowerCase()
-  const keywords = MODALIDAD_KEYWORDS[modalidadFiltro] ?? []
-  return keywords.some(kw => searchText.includes(kw))
+export function detectModalidad(job) {
+  const searchText = `${job.puesto ?? ''} ${job.descripcion_corta ?? ''} ${job.ubicacion ?? ''}`.toLowerCase()
+
+  if (HYBRID_KEYWORDS.some(kw => searchText.includes(kw))) {
+    return 'hibrido'
+  }
+
+  const hasRemote = REMOTE_KEYWORDS.some(kw => searchText.includes(kw))
+  const hasPresencial = PRESENCIAL_KEYWORDS.some(kw => searchText.includes(kw))
+
+  // Si menciona tanto presencia física (sede/oficina/planta) como remoto -> es híbrido
+  if (hasRemote && hasPresencial) {
+    return 'hibrido'
+  }
+
+  if (hasRemote) {
+    return 'remoto'
+  }
+
+  return 'presencial'
 }
 
 /**
@@ -189,7 +196,7 @@ export async function getJobDetails(jobId) {
       }
     })
 
-    if (!res.ok) return { descripcion: '', postulantes: null, salario: 'No reporta' }
+    if (!res.ok) return { descripcion: '', postulantes: null, salario: 'No reporta', modalidadDetectada: null }
 
     const html = await res.text()
     const $ = cheerio.load(html)
@@ -210,10 +217,26 @@ export async function getJobDetails(jobId) {
     const salarioText = $('.compensation-range, .salary, .job-details-jobs-unified-top-card__compensation').text().trim()
     const salario = salarioText || 'No reporta'
 
-    return { descripcion, postulantes, salario }
+    // Extracción de criterios para afinar la modalidad
+    let criteriaText = ''
+    $('.description__job-criteria-item, .job-criteria__item').each((_, el) => {
+      criteriaText += ' ' + $(el).text()
+    })
+
+    const combinedText = `${descripcion} ${criteriaText}`.toLowerCase()
+    let modalidadDetectada = null
+    if (HYBRID_KEYWORDS.some(kw => combinedText.includes(kw))) {
+      modalidadDetectada = 'hibrido'
+    } else if (REMOTE_KEYWORDS.some(kw => combinedText.includes(kw))) {
+      modalidadDetectada = 'remoto'
+    } else if (PRESENCIAL_KEYWORDS.some(kw => combinedText.includes(kw))) {
+      modalidadDetectada = 'presencial'
+    }
+
+    return { descripcion, postulantes, salario, modalidadDetectada }
   } catch (err) {
     console.warn(`Error al obtener detalles del trabajo ${jobId}:`, err.message)
-    return { descripcion: '', postulantes: null, salario: 'No reporta' }
+    return { descripcion: '', postulantes: null, salario: 'No reporta', modalidadDetectada: null }
   }
 }
 
@@ -338,8 +361,17 @@ export async function fetchJobPostingById(jobIdInput) {
   }
 }
 
+// Caché en memoria para mitigar Rate Limits de LinkedIn Guest API durante el evento piloto
+const SEARCH_CACHE = new Map()
+const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutos
+
+function getSearchCacheKey({ query, location, modalidad, seniority, limit }) {
+  return `${(query || '').trim().toLowerCase()}|${(location || '').trim().toLowerCase()}|${modalidad}|${seniority}|${limit}`
+}
+
 /**
  * Ejecuta la búsqueda de vacantes en LinkedIn Guest API con soporte para filtros y hasta 50 resultados.
+ * Implementa caché en memoria (TTL 15 min) para proteger contra bloqueos de IP durante el taller.
  */
 export async function searchLinkedInJobs({
   query,
@@ -348,6 +380,13 @@ export async function searchLinkedInJobs({
   seniority = 'todos',
   limit = 25
 }) {
+  const cacheKey = getSearchCacheKey({ query, location, modalidad, seniority, limit })
+  const cached = SEARCH_CACHE.get(cacheKey)
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+    console.log(`[jobSearch QA Cache HIT] Sirviendo ${cached.data.length} vacantes desde caché para '${query}' en '${location}'`)
+    return cached.data
+  }
+
   try {
     const jobs = []
     const pageSize = 25
@@ -355,12 +394,8 @@ export async function searchLinkedInJobs({
 
     for (let page = 0; page < pagesToFetch; page++) {
       const start = page * pageSize
-      // Intentar resolver el geoId para una búsqueda de ubicación más precisa.
-      // LinkedIn Guest API no geocodifica bien el texto libre fuera de LATAM.
-      const geoId = resolveGeoId(location)
-      let searchUrl = geoId
-        ? `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(query)}&geoId=${geoId}&start=${start}`
-        : `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&start=${start}`
+      const resolvedLocation = resolveSearchLocation(location)
+      let searchUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(query)}&location=${encodeURIComponent(resolvedLocation)}&start=${start}`
 
       if (modalidad && WORK_TYPE_MAP[modalidad]) {
         searchUrl += `&f_WT=${WORK_TYPE_MAP[modalidad]}`
@@ -415,7 +450,7 @@ export async function searchLinkedInJobs({
             puesto,
             empresa,
             ubicacion: ubicacionCard || location,
-            modalidad: modalidad !== 'todas' ? modalidad : 'hibrido',
+            modalidad: 'presencial', // Se ajusta con la detección profunda abajo
             seniority: seniority !== 'todos' ? seniority : 'No especificado',
             link: cleanLink,
             fecha_publicacion: fechaAttr ? new Date(fechaAttr).toISOString() : new Date().toISOString(),
@@ -425,33 +460,33 @@ export async function searchLinkedInJobs({
       }
     }
 
-    // Obtener detalles extendidos (descripción, salario, postulantes) de cada vacante encontrada
+    // Obtener detalles extendidos (descripción, salario, postulantes y modalidad detectada)
     const detailedJobs = await Promise.all(
       jobs.map(async (job) => {
         const details = await getJobDetails(job.job_id)
-        return {
+        const jobWithDesc = {
           ...job,
           descripcion_corta: details.descripcion || `Vacante para ${job.puesto} en ${job.empresa}.`,
           postulantes: details.postulantes,
           salario: details.salario || 'No reporta'
         }
+        jobWithDesc.modalidad = details.modalidadDetectada || detectModalidad(jobWithDesc)
+        return jobWithDesc
       })
     )
 
-    // Filtro post-scraping de modalidad: compensamos que la LinkedIn Guest API
-    // no garantiza el filtro f_WT para modalidades presencial e híbrido.
-    // Solo aplicamos el filtro si hay suficientes resultados; si todos quedan fuera,
-    // devolvemos todos para no dejar al usuario con lista vacía.
+    const finalResults = (modalidad && modalidad !== 'todas')
+      ? detailedJobs.filter(job => job.modalidad === modalidad)
+      : detailedJobs
+
     if (modalidad && modalidad !== 'todas') {
-      const filtered = detailedJobs.filter(job => jobMatchesModalidad(job, modalidad))
-      if (filtered.length > 0) {
-        console.log(`[jobSearch] Filtro modalidad '${modalidad}': ${detailedJobs.length} → ${filtered.length} resultados`)
-        return filtered
-      }
-      console.warn(`[jobSearch] Filtro modalidad '${modalidad}' dejó 0 resultados — devolviendo todos (LinkedIn no reportó modalidad en resultados)`)
+      console.log(`[jobSearch] Filtro modalidad '${modalidad}': ${detailedJobs.length} total -> ${finalResults.length} coincidentes`)
     }
 
-    return detailedJobs
+    // Almacenar en caché para optimizar concurrencia
+    SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: finalResults })
+
+    return finalResults
   } catch (err) {
     console.error('Error en servicio searchLinkedInJobs:', err.message)
     throw err

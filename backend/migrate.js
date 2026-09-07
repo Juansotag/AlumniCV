@@ -15,9 +15,9 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS seniority TEXT DEFAULT '',
         ADD COLUMN IF NOT EXISTS link TEXT DEFAULT ''
     `)
-    console.log('✅ Migración exitosa: postulantes, seniority, link en applications')
+    console.log('[OK] Migración exitosa: postulantes, seniority, link en applications')
   } catch (err) {
-    console.error('❌ Error de migración:', err.message)
+    console.error('[ERROR] de migración:', err.message)
   } finally {
     await pool.end()
   }

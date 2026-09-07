@@ -10,9 +10,9 @@ const pool = new Pool({
 async function clearAnuncios() {
   try {
     const { rowCount } = await pool.query('DELETE FROM job_search_results')
-    console.log(`✅ Se eliminaron todos los anuncios (${rowCount} registros) de la base de datos.`)
+    console.log(`[OK] Se eliminaron todos los anuncios (${rowCount} registros) de la base de datos.`)
   } catch (err) {
-    console.error('❌ Error al eliminar anuncios:', err.message)
+    console.error('[ERROR] al eliminar anuncios:', err.message)
   } finally {
     await pool.end()
   }
