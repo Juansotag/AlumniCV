@@ -60,48 +60,77 @@ router.post('/generate', requireAuth, async (req, res) => {
     )
     if (!profile) return res.status(404).json({ error: 'Perfil de usuario no encontrado' })
 
+    const systemPrompt = `Eres un Asesor Ejecutivo Senior de Empleabilidad y Headhunter Corporativo de Alumni Sabana (Universidad de La Sabana).
+Tu especialidad es redactar documentos de postulación ejecutiva de altísimo impacto, persuasión profesional y alineación rigurosa con filtros ATS (Applicant Tracking Systems) y directores de Selección de Talento.
+
+PRINCIPIOS FUNDAMENTALES DE REDACCIÓN EJECUTIVA:
+1. TONO: Formal, sofisticado, persuasivo, seguro y orientado a resultados. En español impecable y culto.
+2. PROHIBICIÓN DE CLICHÉS: Queda estrictamente prohibido usar frases vagas como "persona proactiva", "apasionado por", "con ganas de aprender", "dinámico y motivado". Toda afirmación debe sustentarse en hechos, competencias y valor agregado concreto.
+3. MÉTRICAS Y LOGROS (MÉTODO STAR / GOOGLE X-Y-Z): Al describir experiencias laborales, cada punto debe reflejar responsabilidades estratégicas e hitos de impacto medible (usando verbos de acción en tercera persona: "Lideró", "Implementó", "Optimizó", "Diseñó", "Estructuró").
+4. CARTA DE PRESENTACIÓN EJECUTIVA:
+   - Debe constar de 3 a 4 párrafos sustanciales, elocuentes y personalizados para la empresa.
+   - Párrafo 1: Postulación formal al cargo en la empresa, demostrando conocimiento de su industria y planteando la propuesta de valor del candidato.
+   - Párrafo 2: Exposición del mayor logro o trayectoria más relevante del candidato directamente vinculada al desafío principal del puesto.
+   - Párrafo 3: Sinergia de habilidades técnicas, visión estratégica y alineación con la cultura corporativa de la organización.
+   - Párrafo 4: Agradecimiento formal por la evaluación, reiterando disposición para entrevista ejecutiva y cierre protocolario formal.
+5. CORREO DE POSTULACIÓN:
+   - Asunto profesional, directo y pulcro.
+   - Cuerpo conciso (2 párrafos ejecutivos), formal, que invite cordialmente a revisar los documentos adjuntos (Hoja de Vida y Carta de Presentación) y facilite canales de contacto.`
+
     const promptGen = `
-Actúa como un experto en redacción de hojas de vida y reclutamiento corporativo.
-Adapta la información del perfil profesional de un candidato para aplicar a una vacante específica.
+Adapta el perfil profesional del siguiente candidato para postularse con máxima ventaja competitiva a la vacante objetivo.
 
-DATOS DE LA VACANTE:
+DATOS DE LA VACANTE OBJETIVO:
 - Empresa: ${application.empresa}
-- Cargo: ${application.puesto}
-- Descripción / Notas: ${application.descripcion_corta || 'No especificada'}
-- Modalidad: ${application.modalidad || 'Híbrida'}
+- Cargo / Rol: ${application.puesto}
+- Descripción / Requisitos: ${application.descripcion_corta || 'No especificada'}
+- Modalidad de trabajo: ${application.modalidad || 'Híbrida'}
 
-PERFIL DEL CANDIDATO:
-- Nombre: ${profile.nombre || 'Candidato UniSabana'}
-- Resumen: ${profile.resumen || ''}
-- Experiencia: ${JSON.stringify(profile.experiencia || [])}
-- Educación: ${JSON.stringify(profile.educacion_formal || [])}
-- Habilidades Técnicas: ${JSON.stringify(profile.habilidades_tecnicas || [])}
+DATOS DEL CANDIDATO (ALUMNI):
+- Nombre completo: ${profile.nombre || 'Candidato UniSabana'}
+- Resumen actual: ${profile.resumen || ''}
+- Experiencias laborales: ${JSON.stringify(profile.experiencia || [])}
+- Formación académica: ${JSON.stringify(profile.educacion_formal || [])}
+- Habilidades técnicas y herramientas: ${JSON.stringify(profile.habilidades_tecnicas || [])}
 
-Genera un JSON con el siguiente esquema exacto:
+INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN:
+1. "resumen_adaptado": Redacta un perfil ejecutivo de 3 a 4 oraciones de alto impacto:
+   - Oración 1: Título profesional, trayectoria y núcleo de especialidad alineado a ${application.puesto}.
+   - Oración 2: Dominio técnico de las principales herramientas y metodologías demandadas por ${application.empresa}.
+   - Oración 3: Mayor factor de diferenciación o hito de impacto comprobado.
+2. "experiencia_adaptada": Conserva todas las empresas, cargos y fechas del candidato. Reescribe cada descripción en viñetas o párrafos contundentes con enfoque STAR, resaltando responsabilidades e impacto cuantificable relevante para ${application.puesto}.
+3. "palabras_clave_destacadas": Lista de 5 a 8 palabras clave ATS estratégicas comunes entre el perfil del candidato y la vacante de ${application.puesto}.
+4. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elegante y persuasiva (3 a 4 párrafos completos).
+5. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
+
+Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
 {
   "cv": {
-    "resumen_adaptado": "Un resumen ejecutivo impactante adaptado exactamente a esta vacante de ${application.puesto} en ${application.empresa}",
+    "resumen_adaptado": "string",
     "experiencia_adaptada": [
       {
-        "empresa": "Nombre Empresa",
-        "cargo": "Cargo ocupado",
-        "desde": "Año",
-        "hasta": "Año",
-        "descripcion": "Descripción con logros cuantificables y palabras clave relevantes para la vacante"
+        "empresa": "string",
+        "cargo": "string",
+        "desde": "string",
+        "hasta": "string",
+        "descripcion": "string"
       }
     ],
-    "palabras_clave_destacadas": ["Palabra1", "Palabra2", "Palabra3", "Palabra4", "Palabra5"]
+    "palabras_clave_destacadas": ["string"]
   },
-  "cover_letter": "Texto completo de una Carta de Presentación formal, persuasiva y profesional (3 a 4 párrafos) dirigida al equipo de selección de ${application.empresa} para la posición de ${application.puesto}.",
+  "cover_letter": "string",
   "correo": {
-    "asunto": "Postulación a ${application.puesto} - ${profile.nombre || 'Candidato'}",
-    "cuerpo": "Texto del correo formal de postulación adjuntando hoja de vida y carta de presentación."
+    "asunto": "string",
+    "cuerpo": "string"
   }
 }
 `
 
-    console.log('[LLM] Generando contenido de documentos...')
-    const llmResult = await completeJson(promptGen)
+    console.log('[LLM] Generando contenido de documentos de alta calidad ejecutiva...')
+    const llmResult = await completeJson(promptGen, {
+      model: process.env.OPENAI_MODEL_FRONTIER || 'gpt-4o',
+      systemPrompt
+    })
     const generatedDocs = []
 
     const apellido = (profile.nombre || 'Candidato').split(' ').slice(-1)[0] || 'Alumni'

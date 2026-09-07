@@ -58,6 +58,8 @@ export default function MisProcesos() {
   const [docTypeToGen, setDocTypeToGen] = useState('todos')
   const [generatingDocs, setGeneratingDocs] = useState(false)
   const [generatedResultDocs, setGeneratedResultDocs] = useState(null)
+  const [generatingMap, setGeneratingMap] = useState({})
+  const [bgNotification, setBgNotification] = useState(null)
 
   const [formData, setFormData] = useState({
     empresa: '',
@@ -140,17 +142,40 @@ export default function MisProcesos() {
   const handleGenerateDocs = async (e) => {
     e.preventDefault()
     if (!selectedAppForDoc) return
+
+    const targetApp = selectedAppForDoc
+    const docType = docTypeToGen
+
+    // Cerrar el modal de inmediato tal como se requiere
+    setSelectedAppForDoc(null)
+
+    // Activar indicador de carga para este proceso en la tabla
+    setGeneratingMap(prev => ({ ...prev, [targetApp.id]: true }))
+    setBgNotification({
+      type: 'info',
+      message: `Generando documentos en segundo plano para "${targetApp.puesto}" en ${targetApp.empresa}. Puedes continuar navegando; se guardarán en "Mis Documentos".`
+    })
+
     try {
-      setGeneratingDocs(true)
       const res = await apiFetch('/documents/generate', {
         method: 'POST',
-        body: JSON.stringify({ application_id: selectedAppForDoc.id, tipo: docTypeToGen })
+        body: JSON.stringify({ application_id: targetApp.id, tipo: docType })
       })
-      setGeneratedResultDocs(res.documents || [])
+      setBgNotification({
+        type: 'success',
+        message: `¡Documentos listos para "${targetApp.puesto}" (${targetApp.empresa})! Ya puedes consultarlos y descargarlos desde la pestaña "Mis Documentos".`
+      })
     } catch (err) {
-      alert('Error al generar documentos: ' + err.message)
+      setBgNotification({
+        type: 'error',
+        message: `Error al generar documentos para "${targetApp.puesto}": ${err.message}`
+      })
     } finally {
-      setGeneratingDocs(false)
+      setGeneratingMap(prev => {
+        const next = { ...prev }
+        delete next[targetApp.id]
+        return next
+      })
     }
   }
 
@@ -180,6 +205,31 @@ export default function MisProcesos() {
           + Nuevo Proceso Manual
         </button>
       </div>
+
+        {/* Notificación de generación en segundo plano */}
+      {bgNotification && (
+        <div
+          style={{
+            padding: '0.85rem 1.25rem',
+            borderRadius: 'var(--radius)',
+            fontSize: 'var(--fs-sm)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: bgNotification.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : bgNotification.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(0, 19, 91, 0.08)',
+            border: `1px solid ${bgNotification.type === 'error' ? 'var(--c-red)' : bgNotification.type === 'success' ? 'var(--c-green)' : 'var(--c-blue-dark)'}`,
+            color: bgNotification.type === 'error' ? 'var(--c-red)' : bgNotification.type === 'success' ? 'var(--c-green)' : 'var(--c-blue-dark)'
+          }}
+        >
+          <span>{bgNotification.message}</span>
+          <button
+            onClick={() => setBgNotification(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, color: 'inherit', marginLeft: '1rem' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Buscador */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#fff', padding: '0.75rem 1rem', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
@@ -249,23 +299,31 @@ export default function MisProcesos() {
             </thead>
             <tbody>
               {getSortedApps(filteredApps).map(app => (
-                <tr key={app.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <tr key={app.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}>
                   <td style={{ padding: '0.8rem 1rem' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{app.puesto}</div>
-                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>{app.empresa}</div>
-                    <span className="badge badge-blue" style={{ fontSize: '0.65rem', marginTop: '2px' }}>{app.plataforma}</span>
-                    {app.link && (
-                      <a href={app.link} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontSize: '0.65rem', color: 'var(--c-blue-light)', marginTop: '2px', fontWeight: 600 }}>
-                        Ver vacante
-                      </a>
-                    )}
+                    <div style={{ fontWeight: 700, color: 'var(--c-blue-dark)', fontSize: 'var(--fs-base)' }}>
+                      {app.link ? (
+                        <a href={app.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                          {app.puesto}
+                        </a>
+                      ) : (
+                        app.puesto
+                      )}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-xs)', display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.2rem' }}>
+                      <span>{app.empresa}</span>
+                      <span>•</span>
+                      <span>{app.ubicacion || 'Sin ubicación'}</span>
+                      <span>•</span>
+                      <span className="badge" style={{ padding: '0.1rem 0.4rem' }}>{app.plataforma}</span>
+                    </div>
                   </td>
                   <td style={{ padding: '0.8rem 0.75rem' }}>
-                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{app.modalidad || '—'}</div>
-                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>{app.seniority || '—'}</div>
+                    <div style={{ textTransform: 'capitalize', fontWeight: 600 }}>{app.modalidad}</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>{app.seniority || 'No esp.'}</div>
                   </td>
-                  <td style={{ padding: '0.8rem 0.75rem', fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>
-                    {app.salario_expectativa || 'No reporta'}
+                  <td style={{ padding: '0.8rem 0.75rem', fontWeight: 600, color: 'var(--c-green)' }}>
+                    {app.salario_expectativa || '—'}
                   </td>
                   <td style={{ padding: '0.8rem 0.75rem', fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
                     {app.postulantes ? `${app.postulantes}` : '—'}
@@ -284,9 +342,23 @@ export default function MisProcesos() {
                   <td style={{ padding: '0.8rem 0.75rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button
                       onClick={() => { setSelectedAppForDoc(app); setGeneratedResultDocs(null) }}
-                      style={{ background: 'var(--c-blue-dark)', color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)', padding: '0.3rem 0.75rem', fontWeight: 700, fontSize: 'var(--fs-xs)', marginBottom: '0.35rem', display: 'block', cursor: 'pointer', width: '100%' }}
+                      disabled={Boolean(generatingMap[app.id])}
+                      style={{
+                        background: generatingMap[app.id] ? '#9ca3af' : 'var(--c-blue-dark)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '0.3rem 0.75rem',
+                        fontWeight: 700,
+                        fontSize: 'var(--fs-xs)',
+                        marginBottom: '0.35rem',
+                        display: 'block',
+                        cursor: generatingMap[app.id] ? 'not-allowed' : 'pointer',
+                        width: '100%',
+                        opacity: generatingMap[app.id] ? 0.75 : 1
+                      }}
                     >
-                      Generar Docs
+                      {generatingMap[app.id] ? 'Generando...' : 'Generar Docs'}
                     </button>
                     <button
                       onClick={() => handleDeleteApp(app.id)}
@@ -305,7 +377,7 @@ export default function MisProcesos() {
       {/* MODAL GENERAR DOCUMENTOS */}
       {selectedAppForDoc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,19,91,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 1000 }}>
-          <div className="card" style={{ maxWidth: '500px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="card" style={{ maxWidth: '520px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <h2 style={{ margin: 0 }}>Generar Documentos .docx</h2>
               <button onClick={() => setSelectedAppForDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
@@ -313,38 +385,28 @@ export default function MisProcesos() {
             <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-sm)' }}>
               <strong>{selectedAppForDoc.puesto}</strong> — {selectedAppForDoc.empresa}
             </div>
-            {!generatedResultDocs ? (
-              <form onSubmit={handleGenerateDocs} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-group">
-                  <label>Selecciona los documentos a redactar con IA:</label>
-                  <select value={docTypeToGen} onChange={e => setDocTypeToGen(e.target.value)}>
-                    <option value="todos">Paquete Completo (CV + Carta + Correo)</option>
-                    <option value="cv">Solo CV Adaptado (.docx)</option>
-                    <option value="cover_letter">Solo Carta de Presentación (.docx)</option>
-                    <option value="correo">Solo Correo de Aplicación (.docx)</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                  <button type="button" onClick={() => setSelectedAppForDoc(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--fs-xs)', padding: '0.5rem 1rem' }}>Cancelar</button>
-                  <button type="submit" disabled={generatingDocs} className="btn-auth-submit">
-                    {generatingDocs ? 'Redactando...' : 'Generar Documentos'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ color: 'var(--c-green)', fontWeight: 600, fontSize: 'var(--fs-sm)' }}>¡Documentos generados con éxito!</div>
-                {generatedResultDocs.map(doc => (
-                  <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-main)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)' }}>
-                    <span>{doc.nombre_archivo}</span>
-                    <a href={doc.file_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--c-blue-dark)', fontWeight: 700 }}>Descargar .docx</a>
-                  </div>
-                ))}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                  <button onClick={() => setSelectedAppForDoc(null)} className="btn-auth-submit" style={{ padding: '0.4rem 1rem', fontSize: 'var(--fs-xs)' }}>Cerrar</button>
-                </div>
+
+            <div style={{ background: 'rgba(0, 19, 91, 0.05)', border: '1px solid rgba(0, 19, 91, 0.15)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-xs)', color: 'var(--text-primary)', lineHeight: 1.45 }}>
+              <strong>Aviso de proceso en segundo plano:</strong> La redacción y compilación se ejecuta en la nube. Al presionar <strong>"Generar Documentos"</strong>, esta ventana se cerrará de inmediato para que continúes navegando. El botón en la tabla cambiará a <em>"Generando..."</em> y tus archivos quedarán automáticamente disponibles en <strong>"Mis Documentos"</strong>.
+            </div>
+
+            <form onSubmit={handleGenerateDocs} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Selecciona los documentos a redactar con IA:</label>
+                <select value={docTypeToGen} onChange={e => setDocTypeToGen(e.target.value)}>
+                  <option value="todos">Paquete Completo (CV + Carta + Correo)</option>
+                  <option value="cv">Solo CV Adaptado (.docx)</option>
+                  <option value="cover_letter">Solo Carta de Presentación (.docx)</option>
+                  <option value="correo">Solo Correo de Aplicación (.docx)</option>
+                </select>
               </div>
-            )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                <button type="button" onClick={() => setSelectedAppForDoc(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--fs-xs)', padding: '0.5rem 1rem' }}>Cancelar</button>
+                <button type="submit" className="btn-auth-submit">
+                  Generar Documentos
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

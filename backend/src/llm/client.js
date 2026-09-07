@@ -57,17 +57,23 @@ async function withRetry(fn, { maxRetries = 3, baseDelayMs = 1000 } = {}) {
  * @param {string} prompt
  * @param {{ maxTokens?: number, model?: string }} options
  */
-export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FRONTIER } = {}) {
+export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FRONTIER, systemPrompt = null } = {}) {
   const openAiClient = getOpenAI()
 
   if (openAiClient) {
     try {
+      const messages = []
+      if (systemPrompt) {
+        messages.push({ role: 'system', content: systemPrompt })
+      }
+      messages.push({ role: 'user', content: prompt })
+
       const rawText = await withRetry(async () => {
         const response = await openAiClient.chat.completions.create({
           model,
           max_tokens: maxTokens,
           response_format: { type: 'json_object' },
-          messages: [{ role: 'user', content: prompt }],
+          messages,
         })
         return response.choices?.[0]?.message?.content ?? ''
       })
@@ -97,6 +103,7 @@ export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FRO
       const message = await anthropicClient.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: maxTokens,
+        system: systemPrompt || undefined,
         messages: [{ role: 'user', content: prompt }],
       })
       return message.content
