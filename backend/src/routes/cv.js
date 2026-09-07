@@ -54,7 +54,9 @@ router.post('/upload', requireAuth, upload.single('cv'), async (req, res) => {
     const cvText = await extractTextFromCv(fileBuffer)
 
     if (!cvText || cvText.trim().length < 50) {
-      return res.status(422).json({ error: 'No se pudo extraer texto legible del PDF' })
+      return res.status(422).json({
+        error: 'Tu PDF no tiene texto seleccionable. Esto ocurre con CVs escaneados, hechos en Canva, con diseño de doble columna o guardados como imagen. Para solucionarlo: abre tu CV en Word o Google Docs y expórtalo como PDF, o usa la opción "Imprimir → Guardar como PDF".'
+      })
     }
 
     // 1. Subir el archivo original

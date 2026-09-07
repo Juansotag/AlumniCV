@@ -26,6 +26,7 @@ const PROMPT_TEMPLATE = (cvText) => `Actúa como un parser de hojas de vida. Ana
 }
 
 Reglas:
+- El CV puede estar escrito en cualquier idioma (español, inglés, portugués, etc.). Extrae la información fielmente en el idioma original del documento, sin traducir nombres de empresas, cargos ni títulos.
 - Extrae TODO lo que encuentres en el CV, no inventes datos que no estén presentes.
 - Si una sección no tiene información en el CV, devuélvela como arreglo vacío [].
 - "habilidades_tecnicas" incluye lenguajes/frameworks de programación (tipo: "programacion"), software o herramientas (tipo: "programa"), y conocimientos específicos de dominio como estadística o machine learning (tipo: "conocimiento").
@@ -42,5 +43,5 @@ ${cvText}`
  * @returns {Promise<object>} — coincide con las columnas jsonb de la tabla `usuarios`
  */
 export async function parseCvText(cvText) {
-  return completeJson(PROMPT_TEMPLATE(cvText), { maxTokens: 4096 })
+  return completeJson(PROMPT_TEMPLATE(cvText), { maxTokens: 4096, model: 'gpt-4o-mini' })
 }

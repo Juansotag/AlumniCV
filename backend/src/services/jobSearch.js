@@ -32,6 +32,120 @@ const SENIORITY_MAP = {
 }
 
 /**
+ * Mapeo de textos de ubicación comunes a geoIds internos de LinkedIn.
+ * LinkedIn Guest API ignora el texto libre para ubicaciones fuera de LATAM;
+ * usar el geoId garantiza resultados precisos internacionalmente.
+ */
+const GEO_ID_MAP = {
+  // Latinoamérica
+  'colombia':          '101097007',
+  'bogotá':            '100876414',
+  'bogota':            '100876414',
+  'medellín':          '100643475',
+  'medellin':          '100643475',
+  'cali':              '104446813',
+  'barranquilla':      '103366518',
+  'mexico':            '103323778',
+  'méxico':            '103323778',
+  'ciudad de mexico':  '103743442',
+  'cdmx':              '103743442',
+  'argentina':         '100446943',
+  'buenos aires':      '104723004',
+  'chile':             '104621616',
+  'santiago':          '103791310',
+  'peru':              '102927786',
+  'perú':              '102927786',
+  'lima':              '102174412',
+  'ecuador':           '103987880',
+  'quito':             '106054690',
+  'brasil':            '106057199',
+  'brazil':            '106057193',
+  'sao paulo':         '101282782',
+  'venezuela':         '101490751',
+  'panama':            '100808673',
+  'panamá':            '100808673',
+  'costa rica':        '101739942',
+  'uruguay':           '100867946',
+  'paraguay':          '104571694',
+  'bolivia':           '104082552',
+  // Europa
+  'spain':             '105646813',
+  'españa':            '105646813',
+  'madrid':            '100994331',
+  'barcelona':         '101386496',
+  'united kingdom':    '101165590',
+  'uk':                '101165590',
+  'london':            '101165590',
+  'germany':           '101282230',
+  'alemania':          '101282230',
+  'france':            '105015875',
+  'francia':           '105015875',
+  'paris':             '101536770',
+  'netherlands':       '102890719',
+  'países bajos':      '102890719',
+  'italy':             '103350119',
+  'italia':            '103350119',
+  'portugal':          '100364837',
+  'switzerland':       '106693272',
+  'suiza':             '106693272',
+  // Norteamérica
+  'united states':     '103644278',
+  'usa':               '103644278',
+  'estados unidos':    '103644278',
+  'new york':          '102571732',
+  'new york city':     '102571732',
+  'nyc':               '102571732',
+  'san francisco':     '102277331',
+  'miami':             '102093823',
+  'austin':            '100523070',
+  'canada':            '101174742',
+  'canadá':            '101174742',
+  'toronto':           '100025096',
+  // Asia / Oceanía
+  'australia':         '101452733',
+  'sydney':            '105204395',
+  'singapore':         '102454443',
+  'singapur':          '102454443',
+  'india':             '102713980',
+  'remote':            '102277331',  // Fallback para "remote" sin ubicación
+}
+
+/**
+ * Dado un texto de ubicación libre, devuelve el geoId de LinkedIn si existe en el mapeo.
+ * @param {string} location
+ * @returns {string|null}
+ */
+function resolveGeoId(location) {
+  if (!location) return null
+  const normalized = location.toLowerCase().trim()
+  return GEO_ID_MAP[normalized] ?? null
+}
+
+/**
+ * Palabras clave por modalidad para filtrar resultados post-scraping.
+ * LinkedIn Guest API no garantiza el filtro f_WT para presencial/híbrido.
+ */
+const MODALIDAD_KEYWORDS = {
+  presencial: ['presencial', 'on-site', 'on site', 'in-office', 'in office', 'in person', 'en oficina'],
+  remoto:     ['remoto', 'remote', 'teletrabajo', 'trabajo desde casa', 'work from home', 'wfh'],
+  hibrido:    ['híbrido', 'hibrido', 'hybrid', 'mixto']
+}
+
+/**
+ * Determina si una vacante coincide con la modalidad solicitada.
+ * Analiza el texto de la descripción y el campo modalidad del card.
+ * @param {object} job
+ * @param {string} modalidadFiltro - 'remoto'|'presencial'|'hibrido'|'todas'
+ * @returns {boolean}
+ */
+function jobMatchesModalidad(job, modalidadFiltro) {
+  if (!modalidadFiltro || modalidadFiltro === 'todas') return true
+  const searchText = `${job.modalidad ?? ''} ${job.descripcion_corta ?? ''} ${job.puesto ?? ''}`.toLowerCase()
+  const keywords = MODALIDAD_KEYWORDS[modalidadFiltro] ?? []
+  return keywords.some(kw => searchText.includes(kw))
+}
+
+/**
  * Extrae el Job ID numérico de LinkedIn a partir de un ID puro o una URL.
  */
 export function extractLinkedInJobId(input) {
@@ -241,7 +355,12 @@ export async function searchLinkedInJobs({
 
     for (let page = 0; page < pagesToFetch; page++) {
       const start = page * pageSize
-      let searchUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&start=${start}`
+      // Intentar resolver el geoId para una búsqueda de ubicación más precisa.
+      // LinkedIn Guest API no geocodifica bien el texto libre fuera de LATAM.
+      const geoId = resolveGeoId(location)
+      let searchUrl = geoId
+        ? `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(query)}&geoId=${geoId}&start=${start}`
+        : `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&start=${start}`
 
       if (modalidad && WORK_TYPE_MAP[modalidad]) {
         searchUrl += `&f_WT=${WORK_TYPE_MAP[modalidad]}`
@@ -318,6 +437,19 @@ export async function searchLinkedInJobs({
         }
       })
     )
+
+    // Filtro post-scraping de modalidad: compensamos que la LinkedIn Guest API
+    // no garantiza el filtro f_WT para modalidades presencial e híbrido.
+    // Solo aplicamos el filtro si hay suficientes resultados; si todos quedan fuera,
+    // devolvemos todos para no dejar al usuario con lista vacía.
+    if (modalidad && modalidad !== 'todas') {
+      const filtered = detailedJobs.filter(job => jobMatchesModalidad(job, modalidad))
+      if (filtered.length > 0) {
+        console.log(`[jobSearch] Filtro modalidad '${modalidad}': ${detailedJobs.length} → ${filtered.length} resultados`)
+        return filtered
+      }
+      console.warn(`[jobSearch] Filtro modalidad '${modalidad}' dejó 0 resultados — devolviendo todos (LinkedIn no reportó modalidad en resultados)`)
+    }
 
     return detailedJobs
   } catch (err) {

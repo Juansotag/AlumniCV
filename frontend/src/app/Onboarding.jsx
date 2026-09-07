@@ -54,6 +54,20 @@ export default function Onboarding() {
             </p>
           </div>
 
+          {/* Aviso de compatibilidad de PDF */}
+          <div style={{
+            background: '#fefce8',
+            border: '1px solid #fde68a',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.75rem 1rem',
+            fontSize: 'var(--fs-sm)',
+            color: '#92400e',
+            lineHeight: 1.5
+          }}>
+            <strong>⚠️ Requisito del PDF:</strong> Tu CV debe tener texto seleccionable (no escaneado ni hecho en Canva).
+            Si no puedes seleccionar el texto en tu PDF, ábrelo en Word o Google Docs y expórtalo de nuevo como PDF.
+          </div>
+
           {!result && (
             <>
               <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" style={{ display: 'none' }} />
@@ -73,9 +87,20 @@ export default function Onboarding() {
                 )}
               </div>
               {error && (
-                <p role="alert" style={{ color: 'var(--c-red)', fontSize: 'var(--fs-sm)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <AlertCircle size={15} /> {error}
-                </p>
+                <div role="alert" style={{
+                  background: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.85rem 1rem',
+                  color: 'var(--c-red)',
+                  fontSize: 'var(--fs-sm)',
+                  lineHeight: 1.6
+                }}>
+                  <div style={{ fontWeight: 700, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <AlertCircle size={15} /> Error al procesar el CV
+                  </div>
+                  <div>{error}</div>
+                </div>
               )}
             </>
           )}

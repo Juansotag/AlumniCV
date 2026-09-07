@@ -1,56 +1,56 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn('⚠️  ANTHROPIC_API_KEY no definida en .env — las funciones de IA no van a funcionar.')
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('⚠️  OPENAI_API_KEY no definida en .env — las funciones de IA no van a funcionar.')
 }
 
-export const anthropic = process.env.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+export const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null
 
-const MODEL = 'claude-sonnet-4-5-20250929'
+// Modelos disponibles
+const MODEL_FULL = 'gpt-4o'        // assessment, docs, coach — calidad alta
+const MODEL_MINI = 'gpt-4o-mini'   // parseo estructurado — rápido y económico
 
 /**
- * Llama a Claude pidiendo una respuesta en JSON puro y la parsea.
- * Sigue el mismo patrón de extracción que usa Germina con OpenAI
- * (regex sobre el bloque {...} por si el modelo agrega texto o fences).
+ * Llama a OpenAI pidiendo una respuesta en JSON puro y la parsea.
+ * Usa response_format: json_object para garantizar JSON válido sin regex.
+ *
+ * @param {string} prompt
+ * @param {{ maxTokens?: number, model?: string }} options
  */
-export async function completeJson(prompt, { maxTokens = 4096 } = {}) {
-  if (!anthropic) throw new Error('ANTHROPIC_API_KEY no configurada')
+export async function completeJson(prompt, { maxTokens = 4096, model = MODEL_FULL } = {}) {
+  if (!openai) throw new Error('OPENAI_API_KEY no configurada')
 
-  const message = await anthropic.messages.create({
-    model: MODEL,
+  const response = await openai.chat.completions.create({
+    model,
     max_tokens: maxTokens,
+    response_format: { type: 'json_object' },
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const rawText = message.content
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('')
-    .trim()
+  const rawText = response.choices[0].message.content ?? ''
 
-  const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('Claude no devolvió un JSON válido: ' + rawText.slice(0, 200))
-
-  return JSON.parse(jsonMatch[0])
+  return JSON.parse(rawText)
 }
 
 /**
- * Llama a Claude para flujos de chat conversacional
+ * Llama a OpenAI para flujos de chat conversacional (Coach Laboral).
+ *
+ * @param {string} systemPrompt
+ * @param {{ role: string, content: string }[]} messages
  */
 export async function chatCompletion(systemPrompt, messages) {
-  if (!anthropic) throw new Error('ANTHROPIC_API_KEY no configurada')
+  if (!openai) throw new Error('OPENAI_API_KEY no configurada')
 
-  const response = await anthropic.messages.create({
-    model: MODEL,
+  const response = await openai.chat.completions.create({
+    model: MODEL_FULL,
     max_tokens: 2048,
-    system: systemPrompt,
-    messages: messages
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ],
   })
 
-  return response.content
-    .filter(block => block.type === 'text')
-    .map(block => block.text)
-    .join('')
+  return response.choices[0].message.content ?? ''
 }
