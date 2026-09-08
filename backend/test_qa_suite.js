@@ -195,6 +195,63 @@ async function runTests() {
   }
   assert(filtered.length === 1 && filtered[0].role === 'user', 'Evitó llamada con historial vacío inyectando mensaje de bienvenida')
 
+  // ── PRUEBA 9: Sanitización de Perfil Unificado, Links y Referencias ──
+  console.log('\n--- TEST 9: Perfil Unificado (Links, Referencias, Correo Personal y Salarios) ---')
+  const rawLinks = {
+    linkedin: ' https://linkedin.com/in/usuario ',
+    github: 'https://github.com/usuario',
+    portafolio: '',
+    tiktok: 'https://tiktok.com/@usuario',
+    otro_campo_invalido: 'drop database'
+  }
+  const safeLinks = {
+    linkedin: String(rawLinks.linkedin || '').trim().slice(0, 300),
+    github: String(rawLinks.github || '').trim().slice(0, 300),
+    portafolio: String(rawLinks.portafolio || '').trim().slice(0, 300),
+    instagram: String(rawLinks.instagram || '').trim().slice(0, 300),
+    tiktok: String(rawLinks.tiktok || '').trim().slice(0, 300),
+    twitter: String(rawLinks.twitter || '').trim().slice(0, 300),
+    facebook: String(rawLinks.facebook || '').trim().slice(0, 300),
+    youtube: String(rawLinks.youtube || '').trim().slice(0, 300),
+    web: String(rawLinks.web || '').trim().slice(0, 300)
+  }
+  assert(safeLinks.linkedin === 'https://linkedin.com/in/usuario', 'Recortó espacios en enlace de LinkedIn')
+  assert(safeLinks.portafolio === '', 'Mantuvo vacío portafolio sin error')
+  assert(!safeLinks.otro_campo_invalido, 'Ignoró campos no permitidos en links')
+
+  // Formato monetario con puntos para miles (ej. $ 4.500.000)
+  const formatSalary = (val) => {
+    if (!val && val !== 0) return ''
+    const str = String(val).trim()
+    if (/[a-zA-Z]/.test(str) && !/^\s*\$?\s*[\d.,\s]+(\s*COP|\s*USD)?$/i.test(str)) return str
+    const digits = str.replace(/[^\d]/g, '')
+    if (!digits) return ''
+    const num = parseInt(digits, 10)
+    if (isNaN(num)) return str
+    return '$ ' + num.toLocaleString('es-CO')
+  }
+  assert(formatSalary('4500000') === '$ 4.500.000', 'Formateó 4500000 a $ 4.500.000 con puntos de miles')
+  assert(formatSalary('$ 7800000 COP') === '$ 7.800.000', 'Limpió prefijos/sufijos y formateó número')
+  assert(formatSalary('1 salario al año') === '1 salario al año', 'Preservó texto descriptivo de bono sin romperlo')
+
+  // Sanitización de referencias laborales
+  const rawLaborales = [
+    { empresa: 'Bancolombia', nombre: 'Carlos Ruiz', cargo_referente: 'Gerente TI', telefono: '+57 300 123 4567', correo: 'carlos@empresa.com' },
+    null,
+    { empresa: 'Davivienda' } // sin nombre, debe ser filtrado
+  ]
+  const safeLaborales = rawLaborales
+    .filter(r => r && typeof r === 'object' && r.nombre && String(r.nombre).trim().length > 0)
+    .map(r => ({
+      empresa: String(r.empresa || '').trim().slice(0, 150),
+      nombre: String(r.nombre || '').trim().slice(0, 150),
+      cargo_referente: String(r.cargo_referente || '').trim().slice(0, 150),
+      telefono: String(r.telefono || '').trim().slice(0, 50),
+      correo: String(r.correo || '').trim().slice(0, 150)
+    }))
+  assert(safeLaborales.length === 1, `Filtró referencias laborales inválidas/nulas (esperado 1, obtenido ${safeLaborales.length})`)
+  assert(safeLaborales[0].empresa === 'Bancolombia', 'Preservó empresa asociada a la referencia')
+
   console.log('\n======================================================')
   console.log(`[FIN] RESULTADOS: ${passedTests}/${totalTests} pruebas superadas exitosamente.`)
   console.log('======================================================\n')

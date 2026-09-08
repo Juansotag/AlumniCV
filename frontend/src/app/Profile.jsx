@@ -15,7 +15,15 @@ import {
   Plus,
   Trash2,
   Save,
-  X
+  X,
+  Globe,
+  Users,
+  Phone,
+  Mail,
+  MapPin,
+  ExternalLink,
+  Link2,
+  Share2
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 import { apiFetch } from '../lib/api.js'
@@ -34,9 +42,26 @@ export default function Profile() {
   const [error, setError] = useState('')
   const [aviso, setAviso] = useState('')
 
-  // Estado del Perfil Maestro
+  // Estado del Perfil Unificado
   const [nombre, setNombre] = useState('')
+  const [titular, setTitular] = useState('')
   const [resumen, setResumen] = useState('')
+  const [correoPersonal, setCorreoPersonal] = useState('')
+  const [telefono, setTelefono] = useState('')
+  const [ubicacion, setUbicacion] = useState('Bogotá, Colombia')
+
+  const [links, setLinks] = useState({
+    linkedin: '',
+    github: '',
+    portafolio: '',
+    instagram: '',
+    tiktok: '',
+    twitter: '',
+    facebook: '',
+    youtube: '',
+    web: ''
+  })
+
   const [experiencia, setExperiencia] = useState([])
   const [educacionFormal, setEducacionFormal] = useState([])
   const [formacionNoFormal, setFormacionNoFormal] = useState([])
@@ -44,6 +69,22 @@ export default function Profile() {
   const [idiomas, setIdiomas] = useState([])
   const [habilidadesTecnicas, setHabilidadesTecnicas] = useState([])
   const [habilidadesBlandas, setHabilidadesBlandas] = useState([])
+  const [referenciasLaborales, setReferenciasLaborales] = useState([])
+  const [referenciasPersonales, setReferenciasPersonales] = useState([])
+
+  // Helper para formatear valores monetarios con puntos para miles (ej. $ 4.500.000)
+  const formatSalaryInput = (val) => {
+    if (!val && val !== 0) return ''
+    const str = String(val).trim()
+    if (/[a-zA-Z]/.test(str) && !/^\s*\$?\s*[\d.,\s]+(\s*COP|\s*USD)?$/i.test(str)) {
+      return str
+    }
+    const digits = str.replace(/[^\d]/g, '')
+    if (!digits) return ''
+    const num = parseInt(digits, 10)
+    if (isNaN(num)) return str
+    return '$ ' + num.toLocaleString('es-CO')
+  }
 
   // Inputs para agregar habilidades rápidamente
   const [newSkillText, setNewSkillText] = useState({
@@ -60,7 +101,34 @@ export default function Profile() {
     if (profile?.usuario) {
       const u = profile.usuario
       setNombre(u.nombre || '')
+      setTitular(u.titular || '')
       setResumen(u.resumen || '')
+      setCorreoPersonal(u.correo_personal || '')
+      setTelefono(u.telefono || '')
+      setUbicacion(u.ubicacion || 'Bogotá, Colombia')
+
+      setLinks(u.links && typeof u.links === 'object' ? {
+        linkedin: u.links.linkedin || '',
+        github: u.links.github || '',
+        portafolio: u.links.portafolio || '',
+        instagram: u.links.instagram || '',
+        tiktok: u.links.tiktok || '',
+        twitter: u.links.twitter || '',
+        facebook: u.links.facebook || '',
+        youtube: u.links.youtube || '',
+        web: u.links.web || ''
+      } : {
+        linkedin: '',
+        github: '',
+        portafolio: '',
+        instagram: '',
+        tiktok: '',
+        twitter: '',
+        facebook: '',
+        youtube: '',
+        web: ''
+      })
+
       setExperiencia(Array.isArray(u.experiencia) ? u.experiencia : [])
       setEducacionFormal(Array.isArray(u.educacion_formal) ? u.educacion_formal : [])
       setFormacionNoFormal(Array.isArray(u.formacion_no_formal) ? u.formacion_no_formal : [])
@@ -85,10 +153,12 @@ export default function Profile() {
 
       setHabilidadesTecnicas(normalizedTech)
       setHabilidadesBlandas(normalizedSoft)
+      setReferenciasLaborales(Array.isArray(u.referencias_laborales) ? u.referencias_laborales : [])
+      setReferenciasPersonales(Array.isArray(u.referencias_personales) ? u.referencias_personales : [])
     }
   }, [profile])
 
-  // Guardar cambios en el Perfil Maestro
+  // Guardar cambios en el Perfil Unificado
   const handleSaveProfile = async () => {
     try {
       setSaving(true)
@@ -99,14 +169,21 @@ export default function Profile() {
         method: 'PUT',
         body: JSON.stringify({
           nombre,
+          titular,
           resumen,
+          correo_personal: correoPersonal,
+          telefono,
+          ubicacion,
+          links,
           experiencia,
           educacion_formal: educacionFormal,
           formacion_no_formal: formacionNoFormal,
           certificaciones,
           idiomas,
           habilidades_tecnicas: habilidadesTecnicas,
-          habilidades_blandas: habilidadesBlandas
+          habilidades_blandas: habilidadesBlandas,
+          referencias_laborales: referenciasLaborales,
+          referencias_personales: referenciasPersonales
         })
       })
 
@@ -300,6 +377,67 @@ export default function Profile() {
     setIdiomas(idiomas.filter((_, i) => i !== index))
   }
 
+  // Helpers de Salarios con formato de moneda
+  const handleSalaryChange = (index, field, value) => {
+    updateExperiencia(index, field, formatSalaryInput(value))
+  }
+
+  // Helpers de Referencias Laborales
+  const addReferenciaLaboral = () => {
+    const defaultEmpresa = experiencia[0]?.empresa || ''
+    setReferenciasLaborales([
+      {
+        empresa: defaultEmpresa,
+        nombre: '',
+        cargo_referente: '',
+        telefono: '',
+        correo: '',
+        relacion: 'Jefe inmediato',
+        notas: ''
+      },
+      ...referenciasLaborales
+    ])
+  }
+
+  const updateReferenciaLaboral = (index, field, value) => {
+    const updated = [...referenciasLaborales]
+    updated[index] = { ...updated[index], [field]: value }
+    setReferenciasLaborales(updated)
+  }
+
+  const removeReferenciaLaboral = (index) => {
+    setReferenciasLaborales(referenciasLaborales.filter((_, i) => i !== index))
+  }
+
+  // Helpers de Referencias Personales
+  const addReferenciaPersonal = () => {
+    setReferenciasPersonales([
+      {
+        nombre: '',
+        profesion: '',
+        telefono: '',
+        correo: '',
+        relacion: 'Amigo'
+      },
+      ...referenciasPersonales
+    ])
+  }
+
+  const updateReferenciaPersonal = (index, field, value) => {
+    const updated = [...referenciasPersonales]
+    updated[index] = { ...updated[index], [field]: value }
+    setReferenciasPersonales(updated)
+  }
+
+  const removeReferenciaPersonal = (index) => {
+    setReferenciasPersonales(referenciasPersonales.filter((_, i) => i !== index))
+  }
+
+  // Helper de Enlaces
+  const updateLink = (key, value) => {
+    setLinks(prev => ({ ...prev, [key]: value }))
+  }
+
   const assessment = profile?.ultimo_assessment
 
   return (
@@ -335,23 +473,24 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Encabezado del Perfil Maestro */}
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {/* Ficha de Identidad del Egresado · Perfil Maestro Unificado */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', borderTop: '4px solid var(--c-blue-dark)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h1 style={{ margin: 0, color: 'var(--c-blue-dark)', fontSize: '1.75rem' }}>Perfil Maestro Integral</h1>
+                <h1 style={{ margin: 0, color: 'var(--c-blue-dark)', fontSize: '1.75rem' }}>Ficha de Identidad · Perfil Maestro Unificado</h1>
                 <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: 'var(--fs-sm)' }}>
-                  Base de datos exhaustiva de tu trayectoria profesional. Alimenta de forma inteligente y adaptada cada hoja de vida que generes.
+                  Repositorio integral de carrera, datos de contacto, enlaces y trayectoria para la Universidad de La Sabana y el GovLab.
                 </p>
               </div>
-              <div style={{ fontSize: 'var(--fs-xs)', background: 'rgba(0,19,91,0.06)', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-sm)', color: 'var(--c-blue-dark)', fontWeight: 600 }}>
-                {profile?.usuario?.correo}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,19,91,0.06)', padding: '0.4rem 0.85rem', borderRadius: 'var(--radius-sm)', color: 'var(--c-blue-dark)', fontSize: 'var(--fs-xs)', fontWeight: 600 }}>
+                <Mail size={14} /> {profile?.usuario?.correo} (Institucional)
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginTop: '0.5rem' }}>
+            {/* Fila 1: Nombre y Titular */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '1rem' }}>
               <div className="form-group">
-                <label>Nombre Completo</label>
+                <label>Nombre Completo *</label>
                 <input
                   type="text"
                   value={nombre}
@@ -360,15 +499,65 @@ export default function Profile() {
                 />
               </div>
               <div className="form-group">
-                <label>Resumen Profesional Maestro</label>
-                <textarea
-                  rows={2}
-                  value={resumen}
-                  onChange={e => setResumen(e.target.value)}
-                  placeholder="Resumen ejecutivo integral de tu propuesta de valor, trayectoria y fortalezas principales..."
-                  style={{ resize: 'vertical' }}
+                <label>Titular Profesional / Especialidad Principal</label>
+                <input
+                  type="text"
+                  value={titular}
+                  onChange={e => setTitular(e.target.value)}
+                  placeholder="Ej. Líder de Analítica de Datos | Especialista en Finanzas Cuantitativas"
                 />
               </div>
+            </div>
+
+            {/* Fila 2: Contacto Personal (Correo Personal, Teléfono, Ubicación) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.2fr', gap: '1rem' }}>
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Mail size={14} /> Correo Personal (No Institucional)
+                </label>
+                <input
+                  type="email"
+                  value={correoPersonal}
+                  onChange={e => setCorreoPersonal(e.target.value)}
+                  placeholder="ejemplo.personal@gmail.com"
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Phone size={14} /> Teléfono / WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  value={telefono}
+                  onChange={e => setTelefono(e.target.value)}
+                  placeholder="+57 310 123 4567"
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <MapPin size={14} /> Ciudad / Ubicación de Residencia
+                </label>
+                <input
+                  type="text"
+                  value={ubicacion}
+                  onChange={e => setUbicacion(e.target.value)}
+                  placeholder="Bogotá / Chía, Colombia"
+                />
+              </div>
+            </div>
+
+            {/* Fila 3: Resumen Profesional Maestro */}
+            <div className="form-group">
+              <label>Resumen Profesional Ejecutivo Integral</label>
+              <textarea
+                rows={3}
+                value={resumen}
+                onChange={e => setResumen(e.target.value)}
+                placeholder="Resumen ejecutivo integral de tu propuesta de valor, competencias nucleares, herramientas de dominio y trayectoria destacada..."
+                style={{ resize: 'vertical' }}
+              />
             </div>
           </div>
 
@@ -465,6 +654,46 @@ export default function Profile() {
               }}
             >
               <Award size={16} /> Certificaciones ({certificaciones.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab('links')}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'links' ? '3px solid var(--c-blue-dark)' : '3px solid transparent',
+                padding: '0.65rem 1.25rem',
+                fontWeight: 700,
+                fontSize: 'var(--fs-sm)',
+                color: activeTab === 'links' ? 'var(--c-blue-dark)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Globe size={16} /> Enlaces & Redes
+            </button>
+
+            <button
+              onClick={() => setActiveTab('referencias')}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'referencias' ? '3px solid var(--c-blue-dark)' : '3px solid transparent',
+                padding: '0.65rem 1.25rem',
+                fontWeight: 700,
+                fontSize: 'var(--fs-sm)',
+                color: activeTab === 'referencias' ? 'var(--c-blue-dark)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Users size={16} /> Referencias ({referenciasLaborales.length + referenciasPersonales.length})
             </button>
 
             <button
@@ -654,8 +883,8 @@ export default function Profile() {
                           <input
                             type="text"
                             value={exp.salario_nominal || ''}
-                            onChange={e => updateExperiencia(idx, 'salario_nominal', e.target.value)}
-                            placeholder="Ej. $6.500.000 COP"
+                            onChange={e => handleSalaryChange(idx, 'salario_nominal', e.target.value)}
+                            placeholder="Ej. $ 6.500.000"
                           />
                         </div>
                         <div className="form-group">
@@ -663,8 +892,8 @@ export default function Profile() {
                           <input
                             type="text"
                             value={exp.salario_real || ''}
-                            onChange={e => updateExperiencia(idx, 'salario_real', e.target.value)}
-                            placeholder="Ej. $7.800.000 COP"
+                            onChange={e => handleSalaryChange(idx, 'salario_real', e.target.value)}
+                            placeholder="Ej. $ 7.800.000"
                           />
                         </div>
                         <div className="form-group">
@@ -672,8 +901,8 @@ export default function Profile() {
                           <input
                             type="text"
                             value={exp.prima_productividad || ''}
-                            onChange={e => updateExperiencia(idx, 'prima_productividad', e.target.value)}
-                            placeholder="Ej. 1 salario al año"
+                            onChange={e => handleSalaryChange(idx, 'prima_productividad', e.target.value)}
+                            placeholder="Ej. $ 3.000.000 o 1 salario al año"
                           />
                         </div>
                         <div className="form-group">
@@ -681,8 +910,8 @@ export default function Profile() {
                           <input
                             type="text"
                             value={exp.promedio_variable || ''}
-                            onChange={e => updateExperiencia(idx, 'promedio_variable', e.target.value)}
-                            placeholder="Ej. $1.200.000 COP"
+                            onChange={e => handleSalaryChange(idx, 'promedio_variable', e.target.value)}
+                            placeholder="Ej. $ 1.200.000"
                           />
                         </div>
                       </div>
@@ -1278,6 +1507,453 @@ export default function Profile() {
                   </div>
                 ))
               )}
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              PESTAÑA: ENLACES & REDES SOCIALES
+          ══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'links' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <h2 style={{ margin: 0 }}>Enlaces Profesionales & Redes Sociales</h2>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--fs-sm)' }}>
+                  Añade tus perfiles públicos, portafolios y redes. La IA los incluirá estratégicamente al generar tus CVs y cartas.
+                </p>
+              </div>
+
+              <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <h3 style={{ margin: 0, fontSize: 'var(--fs-base)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Globe size={18} /> Presencia Profesional Principal
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>LinkedIn</span>
+                      {links.linkedin && (
+                        <a href={links.linkedin.startsWith('http') ? links.linkedin : `https://${links.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.linkedin || ''}
+                      onChange={e => updateLink('linkedin', e.target.value)}
+                      placeholder="https://linkedin.com/in/usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>GitHub</span>
+                      {links.github && (
+                        <a href={links.github.startsWith('http') ? links.github : `https://${links.github}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.github || ''}
+                      onChange={e => updateLink('github', e.target.value)}
+                      placeholder="https://github.com/usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Portafolio / Web Personal</span>
+                      {links.portafolio && (
+                        <a href={links.portafolio.startsWith('http') ? links.portafolio : `https://${links.portafolio}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.portafolio || ''}
+                      onChange={e => updateLink('portafolio', e.target.value)}
+                      placeholder="https://miportafolio.com o https://be.net/usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Sitio Web Alternativo / Blog</span>
+                      {links.web && (
+                        <a href={links.web.startsWith('http') ? links.web : `https://${links.web}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.web || ''}
+                      onChange={e => updateLink('web', e.target.value)}
+                      placeholder="https://miblog.dev"
+                    />
+                  </div>
+                </div>
+
+                <h3 style={{ margin: '1rem 0 0', fontSize: 'var(--fs-base)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <Share2 size={18} /> Redes Sociales & Medios
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>TikTok</span>
+                      {links.tiktok && (
+                        <a href={links.tiktok.startsWith('http') ? links.tiktok : `https://${links.tiktok}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.tiktok || ''}
+                      onChange={e => updateLink('tiktok', e.target.value)}
+                      placeholder="https://tiktok.com/@usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Instagram</span>
+                      {links.instagram && (
+                        <a href={links.instagram.startsWith('http') ? links.instagram : `https://${links.instagram}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.instagram || ''}
+                      onChange={e => updateLink('instagram', e.target.value)}
+                      placeholder="https://instagram.com/usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Twitter / X</span>
+                      {links.twitter && (
+                        <a href={links.twitter.startsWith('http') ? links.twitter : `https://${links.twitter}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.twitter || ''}
+                      onChange={e => updateLink('twitter', e.target.value)}
+                      placeholder="https://x.com/usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Facebook</span>
+                      {links.facebook && (
+                        <a href={links.facebook.startsWith('http') ? links.facebook : `https://${links.facebook}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.facebook || ''}
+                      onChange={e => updateLink('facebook', e.target.value)}
+                      placeholder="https://facebook.com/usuario"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>YouTube</span>
+                      {links.youtube && (
+                        <a href={links.youtube.startsWith('http') ? links.youtube : `https://${links.youtube}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                          Probar enlace <ExternalLink size={12} />
+                        </a>
+                      )}
+                    </label>
+                    <input
+                      type="url"
+                      value={links.youtube || ''}
+                      onChange={e => updateLink('youtube', e.target.value)}
+                      placeholder="https://youtube.com/@usuario"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              PESTAÑA: REFERENCIAS LABORALES Y PERSONALES
+          ══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'referencias' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Sección Referencias Laborales Asociadas a Trabajo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h2 style={{ margin: 0 }}>Referencias Laborales Asociadas a Experiencias</h2>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--fs-sm)' }}>
+                      Contactos de jefes, líderes o colegas asociados directamente a las empresas donde laboraste.
+                    </p>
+                  </div>
+                  <button
+                    onClick={addReferenciaLaboral}
+                    className="btn-auth-submit"
+                    style={{ width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem' }}
+                  >
+                    <Plus size={16} /> Agregar Referencia Laboral
+                  </button>
+                </div>
+
+                {referenciasLaborales.length === 0 ? (
+                  <div className="card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                    <p style={{ color: 'var(--text-muted)', margin: '0 0 1rem' }}>No tienes referencias laborales registradas.</p>
+                    <button onClick={addReferenciaLaboral} className="btn-auth-submit" style={{ width: 'auto' }}>+ Agregar Referencia Laboral</button>
+                  </div>
+                ) : (
+                  referenciasLaborales.map((ref, idx) => {
+                    const empresasDisponibles = Array.from(new Set(experiencia.map(e => e.empresa).filter(Boolean)))
+                    const esEmpresaEnLista = empresasDisponibles.includes(ref.empresa)
+
+                    return (
+                      <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', borderLeft: '4px solid var(--c-blue-dark)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--c-blue-dark)' }}>
+                            #{idx + 1} {ref.nombre || 'Nuevo Referente'} {ref.empresa ? `(${ref.empresa})` : ''}
+                          </span>
+                          <button
+                            onClick={() => removeReferenciaLaboral(idx)}
+                            style={{ background: 'none', border: 'none', color: 'var(--c-red)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-xs)' }}
+                          >
+                            <Trash2 size={14} /> Eliminar
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                          <div className="form-group">
+                            <label>Empresa de la Experiencia Asociada *</label>
+                            {empresasDisponibles.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <select
+                                  value={esEmpresaEnLista ? ref.empresa : (ref.empresa ? 'custom' : '')}
+                                  onChange={e => {
+                                    if (e.target.value === 'custom') {
+                                      updateReferenciaLaboral(idx, 'empresa', '')
+                                    } else {
+                                      updateReferenciaLaboral(idx, 'empresa', e.target.value)
+                                    }
+                                  }}
+                                >
+                                  <option value="">Selecciona la empresa...</option>
+                                  {empresasDisponibles.map((emp, eIdx) => (
+                                    <option key={eIdx} value={emp}>{emp}</option>
+                                  ))}
+                                  <option value="custom">Otra empresa (especificar)...</option>
+                                </select>
+                                {(!esEmpresaEnLista || !ref.empresa) && (
+                                  <input
+                                    type="text"
+                                    value={ref.empresa || ''}
+                                    onChange={e => updateReferenciaLaboral(idx, 'empresa', e.target.value)}
+                                    placeholder="Escribe el nombre de la empresa..."
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                value={ref.empresa || ''}
+                                onChange={e => updateReferenciaLaboral(idx, 'empresa', e.target.value)}
+                                placeholder="Ej. Banco Davivienda"
+                              />
+                            )}
+                          </div>
+
+                          <div className="form-group">
+                            <label>Nombre del Referente *</label>
+                            <input
+                              type="text"
+                              value={ref.nombre || ''}
+                              onChange={e => updateReferenciaLaboral(idx, 'nombre', e.target.value)}
+                              placeholder="Ej. Dra. Marcela Gómez"
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                          <div className="form-group">
+                            <label>Cargo del Referente</label>
+                            <input
+                              type="text"
+                              value={ref.cargo_referente || ''}
+                              onChange={e => updateReferenciaLaboral(idx, 'cargo_referente', e.target.value)}
+                              placeholder="Ej. Vicepresidente de Operaciones"
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label>Relación Laboral</label>
+                            <select
+                              value={ref.relacion || 'Jefe inmediato'}
+                              onChange={e => updateReferenciaLaboral(idx, 'relacion', e.target.value)}
+                            >
+                              <option value="Jefe inmediato">Jefe inmediato</option>
+                              <option value="Gerente de área / Director">Gerente de área / Director</option>
+                              <option value="Compañero / Par de equipo">Compañero / Par de equipo</option>
+                              <option value="Reporte directo">Reporte directo (Subordinado)</option>
+                              <option value="Cliente directo">Cliente directo</option>
+                              <option value="Proveedor">Proveedor</option>
+                              <option value="Socio / Co-fundador">Socio / Co-fundador</option>
+                            </select>
+                          </div>
+
+                          <div className="form-group">
+                            <label>Teléfono de Contacto</label>
+                            <input
+                              type="tel"
+                              value={ref.telefono || ''}
+                              onChange={e => updateReferenciaLaboral(idx, 'telefono', e.target.value)}
+                              placeholder="+57 310 123 4567"
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '0.75rem' }}>
+                          <div className="form-group">
+                            <label>Correo Electrónico</label>
+                            <input
+                              type="email"
+                              value={ref.correo || ''}
+                              onChange={e => updateReferenciaLaboral(idx, 'correo', e.target.value)}
+                              placeholder="marcela.gomez@empresa.com"
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label>Notas / Contexto de la referencia</label>
+                            <input
+                              type="text"
+                              value={ref.notas || ''}
+                              onChange={e => updateReferenciaLaboral(idx, 'notas', e.target.value)}
+                              placeholder="Ej. Autorizado para verificar logros del proyecto SAP"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Sección Referencias Personales y Académicas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '2px dashed var(--border-color)', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h2 style={{ margin: 0 }}>Referencias Personales & Académicas</h2>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--fs-sm)' }}>
+                      Contactos de mentores, profesores, tutores o personas de confianza que den testimonio de tu ética y compromiso.
+                    </p>
+                  </div>
+                  <button
+                    onClick={addReferenciaPersonal}
+                    className="btn-auth-submit"
+                    style={{ width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem' }}
+                  >
+                    <Plus size={16} /> Agregar Referencia Personal
+                  </button>
+                </div>
+
+                {referenciasPersonales.length === 0 ? (
+                  <div className="card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                    <p style={{ color: 'var(--text-muted)', margin: '0 0 1rem' }}>No tienes referencias personales registradas.</p>
+                    <button onClick={addReferenciaPersonal} className="btn-auth-submit" style={{ width: 'auto' }}>+ Agregar Referencia Personal</button>
+                  </div>
+                ) : (
+                  referenciasPersonales.map((ref, idx) => (
+                    <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--c-blue-dark)' }}>
+                          #{idx + 1} {ref.nombre || 'Nuevo Contacto Personal'}
+                        </span>
+                        <button
+                          onClick={() => removeReferenciaPersonal(idx)}
+                          style={{ background: 'none', border: 'none', color: 'var(--c-red)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: 'var(--fs-xs)' }}
+                        >
+                          <Trash2 size={14} /> Eliminar
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
+                        <div className="form-group">
+                          <label>Nombre Completo *</label>
+                          <input
+                            type="text"
+                            value={ref.nombre || ''}
+                            onChange={e => updateReferenciaPersonal(idx, 'nombre', e.target.value)}
+                            placeholder="Ej. Dr. Andrés Restrepo"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Profesión / Ocupación</label>
+                          <input
+                            type="text"
+                            value={ref.profesion || ''}
+                            onChange={e => updateReferenciaPersonal(idx, 'profesion', e.target.value)}
+                            placeholder="Ej. Profesor Investigador"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Relación</label>
+                          <select
+                            value={ref.relacion || 'Amigo'}
+                            onChange={e => updateReferenciaPersonal(idx, 'relacion', e.target.value)}
+                          >
+                            <option value="Mentor / Tutor académico">Mentor / Tutor académico</option>
+                            <option value="Profesor universitario">Profesor universitario</option>
+                            <option value="Colega del gremio">Colega del gremio</option>
+                            <option value="Amigo">Amigo</option>
+                            <option value="Familiar">Familiar</option>
+                            <option value="Otro">Otro</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div className="form-group">
+                          <label>Teléfono de Contacto</label>
+                          <input
+                            type="tel"
+                            value={ref.telefono || ''}
+                            onChange={e => updateReferenciaPersonal(idx, 'telefono', e.target.value)}
+                            placeholder="+57 300 987 6543"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label>Correo Electrónico</label>
+                          <input
+                            type="email"
+                            value={ref.correo || ''}
+                            onChange={e => updateReferenciaPersonal(idx, 'correo', e.target.value)}
+                            placeholder="andres.restrepo@email.com"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 

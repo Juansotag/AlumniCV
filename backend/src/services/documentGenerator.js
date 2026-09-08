@@ -58,16 +58,39 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
             spacing: { after: 100 }
           }),
 
-          // ── Línea de Contacto Institucional ───────────────────────
+          // ── Línea de Contacto Dinámica y Unificada ───────────────
           new Paragraph({
             alignment: AlignmentType.LEFT,
-            children: [
-              new TextRun({ text: 'Bogotá / Cundinamarca, Colombia', size: 19, font: 'Arial', color: '475569' }),
-              new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }),
-              new TextRun({ text: profile.correo || 'usuario@unisabana.edu.co', size: 19, font: 'Arial', color: '475569' }),
-              new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }),
-              new TextRun({ text: 'LinkedIn', size: 19, font: 'Arial', color: '00387D', underline: {} })
-            ],
+            children: (() => {
+              const items = []
+              items.push(new TextRun({ text: profile.ubicacion || 'Bogotá / Cundinamarca, Colombia', size: 19, font: 'Arial', color: '475569' }))
+
+              if (profile.telefono) {
+                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+                items.push(new TextRun({ text: profile.telefono, size: 19, font: 'Arial', color: '475569' }))
+              }
+
+              const emails = [profile.correo, profile.correo_personal].filter(Boolean)
+              if (emails.length > 0) {
+                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+                items.push(new TextRun({ text: emails.join(' / '), size: 19, font: 'Arial', color: '475569' }))
+              }
+
+              const linksObj = profile.links && typeof profile.links === 'object' ? profile.links : {}
+              if (linksObj.linkedin) {
+                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+                items.push(new TextRun({ text: 'LinkedIn', size: 19, font: 'Arial', color: '00387D', underline: {} }))
+              }
+              if (linksObj.github) {
+                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+                items.push(new TextRun({ text: 'GitHub', size: 19, font: 'Arial', color: '00387D', underline: {} }))
+              }
+              if (linksObj.portafolio) {
+                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+                items.push(new TextRun({ text: 'Portafolio', size: 19, font: 'Arial', color: '00387D', underline: {} }))
+              }
+              return items
+            })(),
             spacing: { after: 240 }
           }),
 
