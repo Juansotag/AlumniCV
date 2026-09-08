@@ -59,7 +59,7 @@ export default function Login() {
         </div>
         <h1 className="auth-brand-title">AlumniCV</h1>
         <p className="auth-brand-desc">
-          Herramienta institucional del GovLab y la Dirección de Alumni para la Universidad de La Sabana. Construye tu CV, analízalo con IA y gestiona tus postulaciones laborales.
+          Herramienta institucional del Laboratorio de Gobierno para la Jefatura de Alumni para la Universidad de La Sabana. Construye tu CV, analízalo con IA y gestiona tus postulaciones laborales.
         </p>
       </div>
 
