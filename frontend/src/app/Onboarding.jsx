@@ -14,6 +14,7 @@ export default function Onboarding() {
   const fileInputRef = useRef(null)
 
   const [uploading, setUploading] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null) // { usuario, cv_file, assessment }
 
@@ -21,8 +22,7 @@ export default function Onboarding() {
     if (!uploading) fileInputRef.current?.click()
   }
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0]
+  const processFile = async (file) => {
     if (!file || uploading) return
 
     // Pre-validaciones QA en cliente antes de enviar la petición
@@ -64,6 +64,28 @@ export default function Onboarding() {
     }
   }
 
+  const handleFileChange = (e) => {
+    processFile(e.target.files?.[0])
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    if (!uploading) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (!uploading && e.dataTransfer.files?.[0]) {
+      processFile(e.dataTransfer.files[0])
+    }
+  }
+
   return (
     <div className="app-shell">
       <Header />
@@ -92,18 +114,69 @@ export default function Onboarding() {
           {!result && (
             <>
               <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" style={{ display: 'none' }} />
-              <div className={`cv-dropzone ${uploading ? 'active' : ''}`} onClick={uploading ? undefined : handleUploadClick}>
+              <div
+                className={`cv-dropzone ${uploading ? 'active' : ''} ${isDragging ? 'dragging' : ''}`}
+                onClick={uploading ? undefined : handleUploadClick}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 {uploading ? (
                   <>
-                    <Loader2 size={36} className="animate-spin" style={{ color: 'var(--c-blue-light)' }} />
-                    <span className="cv-dropzone-text" style={{ fontWeight: 600 }}>Leyendo tu CV y ejecutando el análisis con IA…</span>
-                    <span className="cv-dropzone-subtext">Puede tardar entre 15 y 30 segundos (ante alta demanda de OpenAI). Por favor no cierres la ventana.</span>
+                    <div style={{
+                      width: 58,
+                      height: 58,
+                      borderRadius: '50%',
+                      background: '#dbeafe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '0.35rem'
+                    }}>
+                      <Loader2 size={30} className="animate-spin" style={{ color: 'var(--c-blue-dark)' }} />
+                    </div>
+                    <span className="cv-dropzone-text" style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--c-blue-dark)' }}>
+                      Leyendo tu CV y ejecutando el análisis con IA…
+                    </span>
+                    <span className="cv-dropzone-subtext">
+                      Puede tardar entre 15 y 30 segundos mientras evaluamos tus fortalezas y completamos tu perfil. Por favor no cierres la ventana.
+                    </span>
+                    <div className="cv-dropzone-progress-bar">
+                      <div className="cv-dropzone-progress-bar-fill" />
+                    </div>
                   </>
                 ) : (
                   <>
-                    <UploadCloud size={36} style={{ color: 'var(--c-blue-soft)' }} />
-                    <span className="cv-dropzone-text"><strong>Haz clic aquí</strong> para subir tu CV (PDF)</span>
-                    <span className="cv-dropzone-subtext">Se llenará tu perfil y verás tu análisis de reclutador.</span>
+                    <div style={{
+                      width: 58,
+                      height: 58,
+                      borderRadius: '50%',
+                      background: '#eff6ff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '0.35rem'
+                    }}>
+                      <UploadCloud size={30} style={{ color: 'var(--c-blue-dark)' }} />
+                    </div>
+                    <span className="cv-dropzone-text">
+                      <strong>Haz clic aquí</strong> o arrastra tu CV en formato PDF
+                    </span>
+                    <span className="cv-dropzone-subtext">
+                      Se llenará tu perfil automáticamente y verás tu evaluación integral de reclutador.
+                    </span>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#94a3b8',
+                      background: '#f8fafc',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '9999px',
+                      border: '1px solid #e2e8f0',
+                      marginTop: '0.25rem'
+                    }}>
+                      Máximo 25 MB • Documento PDF
+                    </span>
                   </>
                 )}
               </div>
