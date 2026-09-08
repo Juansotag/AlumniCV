@@ -525,3 +525,22 @@ input:focus, select:focus, textarea:focus {
   0% { transform: translateX(-30%); }
   100% { transform: translateX(180%); }
 }
+
+/* ─── Visor DOCX Interactivo (docx-preview) ─── */
+.docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 1.5rem !important;
+}
+
+.docx-wrapper > section.docx {
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 4px !important;
+  margin-bottom: 1.5rem !important;
+  box-sizing: border-box !important;
+}
+

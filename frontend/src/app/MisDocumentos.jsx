@@ -115,14 +115,16 @@ export default function MisDocumentos() {
           setPdfPreviewUrl(url)
           setPreviewLoading(false)
         } else {
-          // Es .docx: Renderizar con docx-preview
+          // Es .docx: Renderizar con docx-preview con paginacion real y estilos
           if (previewContainerRef.current) {
             previewContainerRef.current.innerHTML = ''
             await docx.renderAsync(blob, previewContainerRef.current, null, {
-              className: 'docx-preview-container',
-              inWrapper: false,
+              className: 'docx',
+              inWrapper: true,
               ignoreWidth: false,
-              ignoreHeight: false
+              ignoreHeight: false,
+              breakPages: true,
+              experimental: true
             })
           }
           setPreviewLoading(false)
@@ -743,13 +745,10 @@ export default function MisDocumentos() {
                   ref={previewContainerRef}
                   style={{
                     width: '100%',
-                    maxWidth: '820px',
-                    background: '#ffffff',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    borderRadius: '4px',
-                    padding: '2.5rem',
                     minHeight: '600px',
-                    color: '#1e293b',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                     boxSizing: 'border-box'
                   }}
                 />
