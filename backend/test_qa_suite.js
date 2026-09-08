@@ -197,27 +197,26 @@ async function runTests() {
 
   // ── PRUEBA 9: Sanitización de Perfil Unificado, Links y Referencias ──
   console.log('\n--- TEST 9: Perfil Unificado (Links, Referencias, Correo Personal y Salarios) ---')
-  const rawLinks = {
-    linkedin: ' https://linkedin.com/in/usuario ',
-    github: 'https://github.com/usuario',
-    portafolio: '',
-    tiktok: 'https://tiktok.com/@usuario',
-    otro_campo_invalido: 'drop database'
-  }
-  const safeLinks = {
-    linkedin: String(rawLinks.linkedin || '').trim().slice(0, 300),
-    github: String(rawLinks.github || '').trim().slice(0, 300),
-    portafolio: String(rawLinks.portafolio || '').trim().slice(0, 300),
-    instagram: String(rawLinks.instagram || '').trim().slice(0, 300),
-    tiktok: String(rawLinks.tiktok || '').trim().slice(0, 300),
-    twitter: String(rawLinks.twitter || '').trim().slice(0, 300),
-    facebook: String(rawLinks.facebook || '').trim().slice(0, 300),
-    youtube: String(rawLinks.youtube || '').trim().slice(0, 300),
-    web: String(rawLinks.web || '').trim().slice(0, 300)
-  }
-  assert(safeLinks.linkedin === 'https://linkedin.com/in/usuario', 'Recortó espacios en enlace de LinkedIn')
-  assert(safeLinks.portafolio === '', 'Mantuvo vacío portafolio sin error')
-  assert(!safeLinks.otro_campo_invalido, 'Ignoró campos no permitidos en links')
+  const rawLinks = [
+    { red: ' LinkedIn ', url: ' https://linkedin.com/in/usuario ' },
+    { red: 'GitHub', url: 'https://github.com/usuario' },
+    null,
+    { red: '', url: '' },
+    { red: 'Portafolio', url: 'https://miportafolio.dev' }
+  ]
+  const safeLinks = (Array.isArray(rawLinks) ? rawLinks : [])
+    .slice(0, 30)
+    .filter(l => l && typeof l === 'object')
+    .map(l => ({
+      red: String(l.red || l.nombre || '').trim().slice(0, 100),
+      url: String(l.url || l.link || '').trim().slice(0, 500)
+    }))
+    .filter(l => l.red || l.url)
+
+  assert(safeLinks.length === 3, `Filtró enlaces nulos/vacíos (esperado 3, obtenido ${safeLinks.length})`)
+  assert(safeLinks[0].red === 'LinkedIn', 'Recortó espacios en nombre de red')
+  assert(safeLinks[0].url === 'https://linkedin.com/in/usuario', 'Recortó espacios en enlace de LinkedIn')
+  assert(safeLinks[2].red === 'Portafolio', 'Preservó red personalizada libre')
 
   // Formato monetario con puntos para miles (ej. $ 4.500.000)
   const formatSalary = (val) => {

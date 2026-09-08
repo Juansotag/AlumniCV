@@ -92,18 +92,24 @@ router.put('/', requireAuth, async (req, res) => {
       ? ubicacion.trim().slice(0, 100)
       : 'Bogotá, Colombia'
 
-    // Sanitizar objeto de enlaces
-    const rawLinks = links && typeof links === 'object' ? links : {}
-    const safeLinks = {
-      linkedin: typeof rawLinks.linkedin === 'string' ? rawLinks.linkedin.trim().slice(0, 255) : '',
-      github: typeof rawLinks.github === 'string' ? rawLinks.github.trim().slice(0, 255) : '',
-      portafolio: typeof rawLinks.portafolio === 'string' ? rawLinks.portafolio.trim().slice(0, 255) : '',
-      instagram: typeof rawLinks.instagram === 'string' ? rawLinks.instagram.trim().slice(0, 255) : '',
-      tiktok: typeof rawLinks.tiktok === 'string' ? rawLinks.tiktok.trim().slice(0, 255) : '',
-      twitter: typeof rawLinks.twitter === 'string' ? rawLinks.twitter.trim().slice(0, 255) : '',
-      facebook: typeof rawLinks.facebook === 'string' ? rawLinks.facebook.trim().slice(0, 255) : '',
-      youtube: typeof rawLinks.youtube === 'string' ? rawLinks.youtube.trim().slice(0, 255) : '',
-      web: typeof rawLinks.web === 'string' ? rawLinks.web.trim().slice(0, 255) : ''
+    // Sanitizar lista de enlaces y redes sociales dinámicas
+    let safeLinks = []
+    if (Array.isArray(links)) {
+      safeLinks = links
+        .slice(0, 30)
+        .filter(l => l && typeof l === 'object')
+        .map(l => ({
+          red: String(l.red || l.nombre || '').trim().slice(0, 100),
+          url: String(l.url || l.link || '').trim().slice(0, 500)
+        }))
+        .filter(l => l.red || l.url)
+    } else if (links && typeof links === 'object') {
+      safeLinks = Object.entries(links)
+        .filter(([_, v]) => Boolean(v))
+        .map(([k, v]) => ({
+          red: String(k).trim().slice(0, 100),
+          url: String(v).trim().slice(0, 500)
+        }))
     }
 
     const safeExperiencia = (Array.isArray(experiencia) ? experiencia : [])

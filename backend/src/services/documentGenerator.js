@@ -76,18 +76,18 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
                 items.push(new TextRun({ text: emails.join(' / '), size: 19, font: 'Arial', color: '475569' }))
               }
 
-              const linksObj = profile.links && typeof profile.links === 'object' ? profile.links : {}
-              if (linksObj.linkedin) {
-                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
-                items.push(new TextRun({ text: 'LinkedIn', size: 19, font: 'Arial', color: '00387D', underline: {} }))
-              }
-              if (linksObj.github) {
-                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
-                items.push(new TextRun({ text: 'GitHub', size: 19, font: 'Arial', color: '00387D', underline: {} }))
-              }
-              if (linksObj.portafolio) {
-                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
-                items.push(new TextRun({ text: 'Portafolio', size: 19, font: 'Arial', color: '00387D', underline: {} }))
+              const linksList = Array.isArray(profile.links)
+                ? profile.links
+                : (profile.links && typeof profile.links === 'object'
+                    ? Object.entries(profile.links).map(([k, v]) => ({ red: k, url: v }))
+                    : [])
+
+              for (const l of linksList) {
+                if (l && l.url) {
+                  const label = l.red || 'Enlace'
+                  items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+                  items.push(new TextRun({ text: label, size: 19, font: 'Arial', color: '00387D', underline: {} }))
+                }
               }
               return items
             })(),

@@ -50,17 +50,11 @@ export default function Profile() {
   const [telefono, setTelefono] = useState('')
   const [ubicacion, setUbicacion] = useState('Bogotá, Colombia')
 
-  const [links, setLinks] = useState({
-    linkedin: '',
-    github: '',
-    portafolio: '',
-    instagram: '',
-    tiktok: '',
-    twitter: '',
-    facebook: '',
-    youtube: '',
-    web: ''
-  })
+  const [links, setLinks] = useState([
+    { red: 'LinkedIn', url: '' },
+    { red: 'GitHub', url: '' },
+    { red: 'Portafolio', url: '' }
+  ])
 
   const [experiencia, setExperiencia] = useState([])
   const [educacionFormal, setEducacionFormal] = useState([])
@@ -163,27 +157,27 @@ export default function Profile() {
       setTelefono(u.telefono || '')
       setUbicacion(u.ubicacion || 'Bogotá, Colombia')
 
-      setLinks(u.links && typeof u.links === 'object' ? {
-        linkedin: u.links.linkedin || '',
-        github: u.links.github || '',
-        portafolio: u.links.portafolio || '',
-        instagram: u.links.instagram || '',
-        tiktok: u.links.tiktok || '',
-        twitter: u.links.twitter || '',
-        facebook: u.links.facebook || '',
-        youtube: u.links.youtube || '',
-        web: u.links.web || ''
-      } : {
-        linkedin: '',
-        github: '',
-        portafolio: '',
-        instagram: '',
-        tiktok: '',
-        twitter: '',
-        facebook: '',
-        youtube: '',
-        web: ''
-      })
+      if (Array.isArray(u.links) && u.links.length > 0) {
+        setLinks(u.links.map(l => ({ red: l.red || l.nombre || '', url: l.url || l.link || '' })))
+      } else if (u.links && typeof u.links === 'object') {
+        const fromObj = Object.entries(u.links)
+          .filter(([_, url]) => Boolean(url))
+          .map(([k, url]) => ({
+            red: k.charAt(0).toUpperCase() + k.slice(1),
+            url: String(url)
+          }))
+        setLinks(fromObj.length > 0 ? fromObj : [
+          { red: 'LinkedIn', url: '' },
+          { red: 'GitHub', url: '' },
+          { red: 'Portafolio', url: '' }
+        ])
+      } else {
+        setLinks([
+          { red: 'LinkedIn', url: '' },
+          { red: 'GitHub', url: '' },
+          { red: 'Portafolio', url: '' }
+        ])
+      }
 
       setExperiencia(Array.isArray(u.experiencia) ? u.experiencia : [])
       setEducacionFormal(Array.isArray(u.educacion_formal) ? u.educacion_formal : [])
@@ -489,15 +483,27 @@ export default function Profile() {
     setReferenciasPersonales(referenciasPersonales.filter((_, i) => i !== index))
   }
 
-  // Helper de Enlaces
-  const updateLink = (key, value) => {
-    setLinks(prev => ({ ...prev, [key]: value }))
+  // Helpers de Enlaces y Redes Sociales Dinámicas
+  const addLink = () => {
+    setLinks([...links, { red: '', url: '' }])
   }
 
-  const normalizeUrlOnBlur = (key) => {
-    const val = links[key]?.trim()
+  const updateLink = (index, field, value) => {
+    const updated = [...links]
+    updated[index] = { ...updated[index], [field]: value }
+    setLinks(updated)
+  }
+
+  const removeLink = (index) => {
+    setLinks(links.filter((_, i) => i !== index))
+  }
+
+  const normalizeUrlOnBlur = (index) => {
+    const item = links[index]
+    if (!item?.url) return
+    const val = item.url.trim()
     if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
-      updateLink(key, `https://${val}`)
+      updateLink(index, 'url', `https://${val}`)
     }
   }
 
@@ -738,7 +744,7 @@ export default function Profile() {
                 whiteSpace: 'nowrap'
               }}
             >
-              <Globe size={16} /> Enlaces & Redes
+              <Globe size={16} /> Enlaces & Redes ({links.filter(l => l.url || l.red).length})
             </button>
 
             <button
@@ -1011,9 +1017,9 @@ export default function Profile() {
                       </div>
                     </div>
 
-                    {/* Logros Detallados STAR */}
+                    {/* Logros Detallados */}
                     <div className="form-group">
-                      <label>Logros, Responsabilidades e Impacto Cuantificable (Metodología STAR / Google X-Y-Z)</label>
+                      <label>Logros, Responsabilidades e Impacto Cuantificable</label>
                       <textarea
                         rows={4}
                         value={exp.descripcion || ''}
@@ -1588,188 +1594,116 @@ export default function Profile() {
           ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'links' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div>
-                <h2 style={{ margin: 0 }}>Enlaces Profesionales & Redes Sociales</h2>
-                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--fs-sm)' }}>
-                  Añade tus perfiles públicos, portafolios y redes. La IA los incluirá estratégicamente al generar tus CVs y cartas.
-                </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 style={{ margin: 0 }}>Enlaces Profesionales & Redes Sociales</h2>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--fs-sm)' }}>
+                    Agrega libremente tus perfiles, portafolios o redes (LinkedIn, GitHub, Instagram, TikTok, etc.).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addLink}
+                  className="btn-auth-submit"
+                  style={{ width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem' }}
+                >
+                  <Plus size={16} /> Agregar Enlace / Red Social
+                </button>
               </div>
 
-              <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <h3 style={{ margin: 0, fontSize: 'var(--fs-base)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Globe size={18} /> Presencia Profesional Principal
-                </h3>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>LinkedIn</span>
-                      {links.linkedin && (
-                        <a href={links.linkedin.startsWith('http') ? links.linkedin : `https://${links.linkedin}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.linkedin || ''}
-                      onChange={e => updateLink('linkedin', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('linkedin')}
-                      placeholder="https://linkedin.com/in/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>GitHub</span>
-                      {links.github && (
-                        <a href={links.github.startsWith('http') ? links.github : `https://${links.github}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.github || ''}
-                      onChange={e => updateLink('github', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('github')}
-                      placeholder="https://github.com/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Portafolio / Web Personal</span>
-                      {links.portafolio && (
-                        <a href={links.portafolio.startsWith('http') ? links.portafolio : `https://${links.portafolio}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.portafolio || ''}
-                      onChange={e => updateLink('portafolio', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('portafolio')}
-                      placeholder="https://miportafolio.com o https://be.net/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Sitio Web Alternativo / Blog</span>
-                      {links.web && (
-                        <a href={links.web.startsWith('http') ? links.web : `https://${links.web}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.web || ''}
-                      onChange={e => updateLink('web', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('web')}
-                      placeholder="https://miblog.dev"
-                    />
-                  </div>
+              {links.length === 0 ? (
+                <div className="card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                  <p style={{ color: 'var(--text-muted)', margin: '0 0 1rem' }}>No tienes enlaces o redes sociales registradas.</p>
+                  <button type="button" onClick={addLink} className="btn-auth-submit" style={{ width: 'auto' }}>+ Agregar Primer Enlace</button>
                 </div>
+              ) : (
+                <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {links.map((linkItem, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1.2fr 2fr auto auto',
+                        gap: '0.75rem',
+                        alignItems: 'flex-end',
+                        paddingBottom: '0.85rem',
+                        borderBottom: idx < links.length - 1 ? '1px solid var(--border-color)' : 'none'
+                      }}
+                    >
+                      <div className="form-group">
+                        <label>Red Social / Nombre de Plataforma</label>
+                        <input
+                          type="text"
+                          value={linkItem.red || ''}
+                          onChange={e => updateLink(idx, 'red', e.target.value)}
+                          placeholder="Ej. LinkedIn, GitHub, Instagram, Portafolio..."
+                        />
+                      </div>
 
-                <h3 style={{ margin: '1rem 0 0', fontSize: 'var(--fs-base)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                  <Share2 size={18} /> Redes Sociales & Medios
-                </h3>
+                      <div className="form-group">
+                        <label>Enlace / URL</label>
+                        <input
+                          type="text"
+                          inputMode="url"
+                          value={linkItem.url || ''}
+                          onChange={e => updateLink(idx, 'url', e.target.value)}
+                          onBlur={() => normalizeUrlOnBlur(idx)}
+                          placeholder="https://..."
+                        />
+                      </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>TikTok</span>
-                      {links.tiktok && (
-                        <a href={links.tiktok.startsWith('http') ? links.tiktok : `https://${links.tiktok}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.tiktok || ''}
-                      onChange={e => updateLink('tiktok', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('tiktok')}
-                      placeholder="https://tiktok.com/@usuario"
-                    />
-                  </div>
+                      <div style={{ marginBottom: '0.2rem' }}>
+                        {linkItem.url ? (
+                          <a
+                            href={linkItem.url.startsWith('http') ? linkItem.url : `https://${linkItem.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-auth-submit"
+                            style={{
+                              width: 'auto',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.62rem 0.9rem',
+                              fontSize: 'var(--fs-xs)',
+                              background: 'rgba(0,19,91,0.08)',
+                              color: 'var(--c-blue-dark)',
+                              textDecoration: 'none'
+                            }}
+                            title="Probar enlace"
+                          >
+                            <ExternalLink size={14} /> Probar
+                          </a>
+                        ) : (
+                          <div style={{ width: 75 }} />
+                        )}
+                      </div>
 
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Instagram</span>
-                      {links.instagram && (
-                        <a href={links.instagram.startsWith('http') ? links.instagram : `https://${links.instagram}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.instagram || ''}
-                      onChange={e => updateLink('instagram', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('instagram')}
-                      placeholder="https://instagram.com/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Twitter / X</span>
-                      {links.twitter && (
-                        <a href={links.twitter.startsWith('http') ? links.twitter : `https://${links.twitter}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.twitter || ''}
-                      onChange={e => updateLink('twitter', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('twitter')}
-                      placeholder="https://x.com/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Facebook</span>
-                      {links.facebook && (
-                        <a href={links.facebook.startsWith('http') ? links.facebook : `https://${links.facebook}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.facebook || ''}
-                      onChange={e => updateLink('facebook', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('facebook')}
-                      placeholder="https://facebook.com/usuario"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>YouTube</span>
-                      {links.youtube && (
-                        <a href={links.youtube.startsWith('http') ? links.youtube : `https://${links.youtube}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--c-blue-dark)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                          Probar enlace <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </label>
-                    <input
-                      type="url"
-                      value={links.youtube || ''}
-                      onChange={e => updateLink('youtube', e.target.value)}
-                      onBlur={() => normalizeUrlOnBlur('youtube')}
-                      placeholder="https://youtube.com/@usuario"
-                    />
-                  </div>
+                      <div style={{ marginBottom: '0.2rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => removeLink(idx)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid #fee2e2',
+                            borderRadius: 'var(--radius-sm)',
+                            color: 'var(--c-red)',
+                            cursor: 'pointer',
+                            padding: '0.62rem 0.75rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: 'var(--fs-xs)'
+                          }}
+                          title="Eliminar enlace"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           )}
 
