@@ -45,6 +45,13 @@ router.post('/generate', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'application_id es requerido' })
   }
 
+  const ALLOWED_TIPOS = ['cv', 'cover_letter', 'correo', 'todos']
+  if (!ALLOWED_TIPOS.includes(tipo)) {
+    return res.status(400).json({
+      error: `Tipo de documento inválido: "${tipo}". Los tipos válidos son: ${ALLOWED_TIPOS.join(', ')}`
+    })
+  }
+
   try {
     // 1. Cargar aplicación
     const { rows: [application] } = await query(
@@ -137,6 +144,7 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
       model: process.env.OPENAI_MODEL_FRONTIER || 'gpt-4o',
       systemPrompt
     })
+    const safeLlmResult = llmResult && typeof llmResult === 'object' ? llmResult : {}
     const generatedDocs = []
 
     const apellido = (profile.nombre || 'Candidato').split(' ').slice(-1)[0] || 'Alumni'
@@ -145,7 +153,7 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
 
     // A. Generar CV adaptado
     if (tipo === 'cv' || tipo === 'todos') {
-      const cvBuffer = await generateCvDocx(profile, application, llmResult.cv || {})
+      const cvBuffer = await generateCvDocx(profile, application, safeLlmResult.cv || {})
       const filename = `${slugify(apellido)}_CV_${slugify(application.empresa)}_${shortId}.docx`
       const fileUrl = await uploadDocumento(cvBuffer, `documents/${req.user.id}/${filename}`)
 
@@ -160,7 +168,7 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
 
     // B. Generar Cover Letter
     if (tipo === 'cover_letter' || tipo === 'todos') {
-      const clBuffer = await generateCoverLetterDocx(profile, application, llmResult.cover_letter || '')
+      const clBuffer = await generateCoverLetterDocx(profile, application, safeLlmResult.cover_letter || '')
       const filename = `${slugify(apellido)}_CartaPresentacion_${slugify(application.empresa)}_${shortId}.docx`
       const fileUrl = await uploadDocumento(clBuffer, `documents/${req.user.id}/${filename}`)
 
@@ -175,7 +183,7 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
 
     // C. Generar Correo de Postulación
     if (tipo === 'correo' || tipo === 'todos') {
-      const emailBuffer = await generateEmailDocx(profile, application, llmResult.correo || {})
+      const emailBuffer = await generateEmailDocx(profile, application, safeLlmResult.correo || {})
       const filename = `${slugify(apellido)}_CorreoPostulacion_${slugify(application.empresa)}_${shortId}.docx`
       const fileUrl = await uploadDocumento(emailBuffer, `documents/${req.user.id}/${filename}`)
 

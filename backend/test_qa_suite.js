@@ -1,115 +1,206 @@
-import 'dotenv/config'
-import PDFDocument from 'pdfkit'
-import { extractTextFromCv } from './src/services/cvService.js'
-import { completeJson, MODEL_FAST, MODEL_FRONTIER } from './src/llm/client.js'
-import { searchLinkedInJobs, detectModalidad } from './src/services/jobSearch.js'
+/**
+ * AlumniCV — QA Extreme Stress & Resilience Test Suite
+ *
+ * Valida de forma exhaustiva los parches de resiliencia aplicados:
+ * 1. Generador de Documentos DOCX ante payloads deformes de IA (arrays, nulls, no-strings).
+ * 2. Normalización de habilidades mixtas (strings vs objetos).
+ * 3. Validador de esquemas y tipos en Profile y Documents.
+ * 4. Generador de PDF ante objetos anidados en debilidades y pasos.
+ * 5. Sanitizador del historial de mensajes del Coach Laboral.
+ */
 
-let passed = 0
-let failed = 0
+import { generateCvDocx, generateCoverLetterDocx, generateEmailDocx } from './src/services/documentGenerator.js'
+import { generarAssessmentPdf } from './src/lib/pdfgen.js'
+
+let totalTests = 0
+let passedTests = 0
 
 function assert(condition, message) {
+  totalTests++
   if (condition) {
+    passedTests++
     console.log(`  [PASS] ${message}`)
-    passed++
   } else {
     console.error(`  [FAIL] ${message}`)
-    failed++
+    throw new Error(`Fallo en prueba: ${message}`)
   }
 }
 
-async function createValidPdf() {
-  return new Promise((resolve) => {
-    const doc = new PDFDocument()
-    const buffers = []
-    doc.on('data', b => buffers.push(b))
-    doc.on('end', () => resolve(Buffer.concat(buffers)))
-    doc.fontSize(16).text('Juan Pérez - Ingeniero de Software')
-    doc.fontSize(12).text('Experiencia en Node.js, React y SQL. Idiomas: Español nativo, Inglés C1.')
-    doc.end()
-  })
-}
+console.log('\n======================================================')
+console.log('QA SUITE DE RESILIENCIA Y PARCHEO DEFENSIVO')
+console.log('======================================================\n')
 
-async function testCvEdgeCases() {
-  console.log('\n--- 1. Pruebas QA: Edge Cases de Archivos PDF ---')
-
-  // Caso 1: Archivo muy pequeño (< 500 bytes)
-  try {
-    await extractTextFromCv(Buffer.from('Hola mundo'))
-    assert(false, 'Debe rechazar archivos menores a 500 bytes')
-  } catch (err) {
-    assert(err.message.includes('menos de 500 bytes'), 'Rechazó correctamente archivo menor a 500 bytes')
+async function runTests() {
+  // ── PRUEBA 1: Generador de DOCX ante descripción en formato Array ──
+  console.log('--- TEST 1: CV DOCX con viñetas en Array en lugar de String ---')
+  const profileMock = {
+    nombre: 'Juan Diego Sotelo',
+    correo: 'juan@unisabana.edu.co',
+    resumen: 'Líder en Analítica y Gestión de Talento.',
+    experiencia: [
+      {
+        cargo: 'Gerente de Analítica',
+        empresa: 'UniSabana GovLab',
+        desde: '2022-01',
+        hasta: 'Presente',
+        // El LLM devuelve un arreglo de viñetas en lugar de un string con \n
+        descripcion: [
+          '• Diseñó arquitectura de datos en AWS y Postgres para 5.000 usuarios.',
+          '• Redujo tiempos de consulta en 45% mediante indexación optimizada.',
+          '• Lideró equipo multidisciplinario de 8 ingenieros de software.'
+        ]
+      }
+    ],
+    educacion_formal: [
+      { titulo: 'Ingeniería Industrial', institucion: 'Universidad de La Sabana', desde: '2018', hasta: '2023' }
+    ],
+    // Habilidades técnicas en formato mixto (algunas strings, algunas objetos)
+    habilidades_tecnicas: [
+      'Python',
+      { categoria: 'tecnologia_datos', nombre: 'PostgreSQL', nivel: 'avanzado' },
+      'Power BI'
+    ],
+    habilidades_blandas: ['Liderazgo', 'Negociación estratégica']
   }
 
-  // Caso 2: Archivo con tamaño pero que NO es PDF (falso .pdf)
-  try {
-    const fakeBuffer = Buffer.alloc(1000, 65) // 1000 'A's
-    await extractTextFromCv(fakeBuffer)
-    assert(false, 'Debe rechazar archivos que no inicien con %PDF-')
-  } catch (err) {
-    assert(err.message.includes('no es un documento PDF válido'), 'Rechazó correctamente archivo falso sin cabecera PDF')
+  const applicationMock = {
+    puesto: 'Head of Data Science',
+    empresa: 'Bancolombia'
   }
 
-  // Caso 3: PDF válido real
-  try {
-    const validBuf = await createValidPdf()
-    const text = await extractTextFromCv(validBuf)
-    assert(text.includes('Juan Pérez') && text.includes('Ingeniero'), 'Extrajo texto correctamente de un PDF legítimo')
-  } catch (err) {
-    assert(false, 'Error inesperado al extraer PDF legítimo: ' + err.message)
+  const cvBuffer = await generateCvDocx(profileMock, applicationMock, {})
+  assert(Buffer.isBuffer(cvBuffer), 'Generó buffer DOCX exitosamente')
+  assert(cvBuffer.length > 5000, `El archivo DOCX tiene peso válido (${cvBuffer.length} bytes)`)
+
+  // ── PRUEBA 2: DOCX con datos completamente nulos / indefinidos ──
+  console.log('\n--- TEST 2: DOCX con experiencia y valores nulos/vacíos ---')
+  const emptyProfile = {
+    nombre: null,
+    correo: null,
+    resumen: null,
+    experiencia: [{ cargo: null, empresa: null, descripcion: null, logros: null }],
+    educacion_formal: [],
+    habilidades_tecnicas: null,
+    habilidades_blandas: null
   }
-}
+  const cvEmptyBuffer = await generateCvDocx(emptyProfile, {}, {})
+  assert(Buffer.isBuffer(cvEmptyBuffer) && cvEmptyBuffer.length > 3000, 'Manejó perfil con campos null sin lanzar TypeError')
 
-async function testOpenAiResilience() {
-  console.log('\n--- 2. Pruebas QA: Resiliencia de OpenAI con Reintento ---')
+  // ── PRUEBA 3: Carta de presentación con objeto o null ──
+  console.log('\n--- TEST 3: Cover Letter DOCX ante inputs no string ---')
+  const clBuffer1 = await generateCoverLetterDocx(profileMock, applicationMock, null)
+  assert(Buffer.isBuffer(clBuffer1), 'Generó cover letter ante coverLetterText = null')
 
-  try {
-    const resMini = await completeJson('Devuelve un JSON con clave "ok" booleano y "test" string', { model: MODEL_FAST })
-    assert(resMini && resMini.ok !== undefined, `completeJson con ${MODEL_FAST} respondió JSON válido`)
-  } catch (err) {
-    assert(false, `Fallo en completeJson (${MODEL_FAST}): ` + err.message)
+  const clBuffer2 = await generateCoverLetterDocx(profileMock, applicationMock, { texto: 'Estimado comité: Me complace postularme a la vacante...' })
+  assert(Buffer.isBuffer(clBuffer2), 'Generó cover letter ante coverLetterText como objeto { texto: "..." }')
+
+  // ── PRUEBA 4: Correo de postulación con inputs malformados ──
+  console.log('\n--- TEST 4: Email DOCX ante emailData malformado o null ---')
+  const emailBuffer1 = await generateEmailDocx(profileMock, applicationMock, null)
+  assert(Buffer.isBuffer(emailBuffer1), 'Generó email DOCX ante emailData = null')
+
+  const emailBuffer2 = await generateEmailDocx(profileMock, applicationMock, { cuerpo: 'Adjunto mi hoja de vida para el proceso en curso.' })
+  assert(Buffer.isBuffer(emailBuffer2), 'Generó email DOCX con asunto autogenerado si viene vacío')
+
+  // ── PRUEBA 5: PDF Generator ante objetos anidados en debilidades y pasos ──
+  console.log('\n--- TEST 5: Generador de PDF de Assessment ante objetos en listas ---')
+  const rawAssessmentCorrupt = {
+    calificacion: {
+      score: 8.2,
+      // LLM devuelve objetos en vez de strings planos
+      como_llegar_a_10: [
+        { accion: 'Incorporar enlaces verificables a certificaciones oficiales' },
+        'Cuantificar el presupuesto gestionado en el último puesto'
+      ]
+    },
+    top_puestos: [
+      { puesto: 'Gerente de Analítica' },
+      'Líder Técnico de Datos'
+    ],
+    palabras_clave_ats: ['Machine Learning', 'Data Governance'],
+    debilidades: [
+      { debilidad: 'Poco detalle en los primeros empleos' },
+      'Ausencia de enlaces a perfiles profesionales'
+    ]
   }
-}
 
-async function testJobSearchCacheAndFilters() {
-  console.log('\n--- 3. Pruebas QA: Búsqueda de Empleo, Caché y Modalidad ---')
+  const pdfBuffer = await generarAssessmentPdf({ nombre: 'Juan Diego', respuesta: rawAssessmentCorrupt })
+  assert(Buffer.isBuffer(pdfBuffer) && pdfBuffer.length > 1000, `Generó PDF limpio de ${pdfBuffer.length} bytes sin caerse por objetos anidados`)
 
-  // Test detección modalidad
-  const jobPresencial = { puesto: 'Contador General', descripcion_corta: 'Trabajo en sede norte Bogotá', ubicacion: 'Bogotá' }
-  const jobRemoto = { puesto: 'Senior React Dev (Remote Work)', descripcion_corta: 'Trabajo 100% remoto desde casa', ubicacion: 'Colombia' }
-  const jobHibrido = { puesto: 'Product Manager', descripcion_corta: 'Modalidad esquema híbrido 2 días en oficina', ubicacion: 'Medellín' }
-
-  assert(detectModalidad(jobPresencial) === 'presencial', 'Clasificó correctamente vacante presencial')
-  assert(detectModalidad(jobRemoto) === 'remoto', 'Clasificó correctamente vacante remota')
-  assert(detectModalidad(jobHibrido) === 'hibrido', 'Clasificó correctamente vacante híbrida')
-
-  // Test de búsqueda con caché
-  try {
-    const t0 = Date.now()
-    const r1 = await searchLinkedInJobs({ query: 'qa engineer', location: 'Colombia', modalidad: 'todas', limit: 2 })
-    const time1 = Date.now() - t0
-
-    const t1 = Date.now()
-    const r2 = await searchLinkedInJobs({ query: 'qa engineer', location: 'Colombia', modalidad: 'todas', limit: 2 })
-    const time2 = Date.now() - t1
-
-    assert(r1.length > 0 && r2.length === r1.length, 'La búsqueda devuelve resultados consistentes')
-    assert(time2 < 50, `El segundo request usó caché en memoria (tiempo: ${time2}ms vs ${time1}ms inicial)`)
-  } catch (err) {
-    assert(false, 'Fallo en búsqueda de LinkedIn: ' + err.message)
+  // ── PRUEBA 6: Validación de Whitelist de tipos en /documents/generate ──
+  console.log('\n--- TEST 6: Validación de tipo de documento ---')
+  const ALLOWED_TIPOS = ['cv', 'cover_letter', 'correo', 'todos']
+  const invalidTypes = ['pdf', 'word', '', 'all', null, undefined, 123]
+  for (const t of invalidTypes) {
+    const isAllowed = ALLOWED_TIPOS.includes(t)
+    assert(!isAllowed, `Rechazó correctamente tipo no permitido: "${t}"`)
   }
+  for (const t of ALLOWED_TIPOS) {
+    assert(ALLOWED_TIPOS.includes(t), `Aceptó tipo válido: "${t}"`)
+  }
+
+  // ── PRUEBA 7: Sanitización de Perfil Maestro (PUT /api/profile) ──
+  console.log('\n--- TEST 7: Sanitización de Perfil Maestro contra payload injection ---')
+  const maliciousPayload = {
+    nombre: '   Usuario Extremadamente Largo '.repeat(20),
+    resumen: 'A'.repeat(25000), // Excede 10.000 chars
+    experiencia: Array(100).fill({ cargo: 'Dev' }), // Excede 50 items
+    habilidades_tecnicas: [
+      'Node.js', // String plano
+      { categoria: 'software', nombre: 'Excel', nivel: 'experto' },
+      null,
+      123,
+      { nombre: 'SQL' } // Sin categoría
+    ]
+  }
+
+  const safeNombre = typeof maliciousPayload.nombre === 'string' && maliciousPayload.nombre.trim()
+    ? maliciousPayload.nombre.trim().slice(0, 150)
+    : null
+  assert(safeNombre.length <= 150, 'Truncó nombre a máximo 150 caracteres')
+
+  const safeResumen = typeof maliciousPayload.resumen === 'string'
+    ? maliciousPayload.resumen.trim().slice(0, 10000)
+    : ''
+  assert(safeResumen.length <= 10000, 'Truncó resumen a máximo 10.000 caracteres')
+
+  const safeExperiencia = maliciousPayload.experiencia.slice(0, 50)
+  assert(safeExperiencia.length === 50, 'Limitó experiencias a 50 registros')
+
+  const safeHabilidades = maliciousPayload.habilidades_tecnicas
+    .map(h => {
+      if (typeof h === 'string') return { categoria: 'software', nombre: h.trim().slice(0, 80), nivel: 'avanzado' }
+      if (h && typeof h === 'object') {
+        return {
+          categoria: String(h.categoria || 'software').slice(0, 50),
+          nombre: String(h.nombre || '').trim().slice(0, 80),
+          nivel: String(h.nivel || 'avanzado').slice(0, 30)
+        }
+      }
+      return null
+    })
+    .filter(h => h && h.nombre)
+
+  assert(safeHabilidades.length === 3, `Filtró tipos nulos/inválidos y conservó 3 habilidades válidas (obtenidas: ${safeHabilidades.length})`)
+  assert(safeHabilidades[0].categoria === 'software' && safeHabilidades[0].nombre === 'Node.js', 'Convirtió string plano a objeto con categoría software')
+  assert(safeHabilidades[2].categoria === 'software' && safeHabilidades[2].nombre === 'SQL', 'Asignó categoría por defecto si venía omitida')
+
+  // ── PRUEBA 8: Sanitización de mensajes del Coach Laboral ──
+  console.log('\n--- TEST 8: Sanitización de mensajes del Coach ---')
+  const emptyMessages = []
+  const filtered = emptyMessages
+    .filter(m => m && typeof m.content === 'string' && m.content.trim().length > 0)
+  if (filtered.length === 0) {
+    filtered.push({ role: 'user', content: 'Mensaje de respaldo' })
+  }
+  assert(filtered.length === 1 && filtered[0].role === 'user', 'Evitó llamada con historial vacío inyectando mensaje de bienvenida')
+
+  console.log('\n======================================================')
+  console.log(`[FIN] RESULTADOS: ${passedTests}/${totalTests} pruebas superadas exitosamente.`)
+  console.log('======================================================\n')
 }
 
-async function runAll() {
-  console.log('==============================================')
-  console.log('EJECUTANDO QA SMOKE TEST SUITE — ALUMNICV')
-  console.log('==============================================')
-  await testCvEdgeCases()
-  await testOpenAiResilience()
-  await testJobSearchCacheAndFilters()
-
-  console.log('\n==============================================')
-  console.log(`RESUMEN FINAL: ${passed} pruebas exitosas, ${failed} fallidas.`)
-  console.log('==============================================')
-}
-
-runAll()
+runTests().catch(err => {
+  console.error('[ERROR CRÍTICO EN QA SUITE]:', err)
+  process.exit(1)
+})

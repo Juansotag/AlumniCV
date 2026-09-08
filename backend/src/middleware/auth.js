@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { query } from '../db/index.js'
+import { getClient } from '../db/index.js'
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
   throw new Error('SUPABASE_URL y SUPABASE_ANON_KEY son requeridas en .env')
@@ -18,7 +18,7 @@ const supabaseAnon = process.env.SUPABASE_ANON_KEY
  *
  * 1. Extrae el Bearer token del header Authorization.
  * 2. Valida el token preguntándole a Supabase Auth directamente.
- * 3. Hace UPSERT en `usuarios` (Railway) la primera vez.
+ * 3. Hace UPSERT en `usuarios` (Railway) la primera vez usando cliente dedicado.
  * 4. Adjunta `req.user` = { id, correo, nombre } para los handlers.
  */
 export async function requireAuth(req, res, next) {
@@ -44,18 +44,18 @@ export async function requireAuth(req, res, next) {
   const correo = user.email
   const nombre = user.user_metadata?.nombre ?? user.user_metadata?.full_name ?? null
 
+  const client = await getClient()
   try {
-    // Usamos una transacción para evitar violación de unicidad en `correo`
-    // cuando Supabase reasigna un nuevo UUID al mismo email (ej. re-registro).
-    await query('BEGIN')
+    // Usamos un cliente exclusivo para la transacción evitando desincronización en el pool
+    await client.query('BEGIN')
 
     // Elimina cualquier registro huérfano con el mismo correo pero distinto id
-    await query(
+    await client.query(
       'DELETE FROM usuarios WHERE correo = $1 AND id != $2',
       [correo, userId]
     )
 
-    await query(`
+    await client.query(`
       INSERT INTO usuarios (id, correo, nombre)
       VALUES ($1, $2, $3)
       ON CONFLICT (id) DO UPDATE
@@ -63,12 +63,12 @@ export async function requireAuth(req, res, next) {
             nombre = COALESCE(usuarios.nombre, EXCLUDED.nombre)
     `, [userId, correo, nombre])
 
-    await query('COMMIT')
+    await client.query('COMMIT')
 
     req.user = { id: userId, correo, nombre }
     next()
   } catch (err) {
-    await query('ROLLBACK').catch(() => {})
+    await client.query('ROLLBACK').catch(() => {})
     console.error('Error al sincronizar usuario en Railway:', {
       message: err.message,
       code: err.code,
@@ -77,5 +77,7 @@ export async function requireAuth(req, res, next) {
       where: err.where,
     })
     res.status(500).json({ error: 'Error interno de autenticación', detail: err.message })
+  } finally {
+    client.release()
   }
 }

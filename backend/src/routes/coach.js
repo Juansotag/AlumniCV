@@ -108,11 +108,21 @@ Directrices de interacción:
 ${userContextText}
 `
 
-    // Limpiamos o mapeamos el historial recibido del cliente para asegurarnos que cumple con el esquema de Anthropic API
-    const formattedMessages = messages.map(m => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content
-    }))
+    // Limpiamos y validamos el historial recibido para evitar caídas de OpenAI/Anthropic
+    const formattedMessages = (Array.isArray(messages) ? messages : [])
+      .filter(m => m && typeof m.content === 'string' && m.content.trim().length > 0)
+      .slice(-20)
+      .map(m => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content.trim()
+      }))
+
+    if (formattedMessages.length === 0) {
+      formattedMessages.push({
+        role: 'user',
+        content: 'Hola, soy candidato de Alumni Sabana y me gustaría recibir asesoría para mi búsqueda de empleo.'
+      })
+    }
 
     // 6. Invocar al LLM
     const reply = await chatCompletion(systemPrompt, formattedMessages)

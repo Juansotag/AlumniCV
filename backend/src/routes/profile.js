@@ -57,6 +57,57 @@ router.put('/', requireAuth, async (req, res) => {
       habilidades_blandas = []
     } = req.body
 
+    // Sanitización defensiva de tipos y longitudes
+    const safeNombre = typeof nombre === 'string' && nombre.trim()
+      ? nombre.trim().slice(0, 150)
+      : null
+
+    const safeResumen = typeof resumen === 'string'
+      ? resumen.trim().slice(0, 10000)
+      : ''
+
+    const safeExperiencia = (Array.isArray(experiencia) ? experiencia : [])
+      .slice(0, 50)
+      .filter(e => e && typeof e === 'object')
+
+    const safeEducacionFormal = (Array.isArray(educacion_formal) ? educacion_formal : [])
+      .slice(0, 30)
+      .filter(e => e && typeof e === 'object')
+
+    const safeFormacionNoFormal = (Array.isArray(formacion_no_formal) ? formacion_no_formal : [])
+      .slice(0, 30)
+      .filter(e => e && typeof e === 'object')
+
+    const safeCertificaciones = (Array.isArray(certificaciones) ? certificaciones : [])
+      .slice(0, 30)
+      .filter(c => c && typeof c === 'object')
+
+    const safeIdiomas = (Array.isArray(idiomas) ? idiomas : [])
+      .slice(0, 20)
+      .filter(i => i && typeof i === 'object')
+
+    const safeHabilidadesTecnicas = (Array.isArray(habilidades_tecnicas) ? habilidades_tecnicas : [])
+      .slice(0, 100)
+      .map(h => {
+        if (typeof h === 'string') {
+          return { categoria: 'software', nombre: h.trim().slice(0, 80), nivel: 'avanzado' }
+        }
+        if (h && typeof h === 'object') {
+          return {
+            categoria: String(h.categoria || 'software').slice(0, 50),
+            nombre: String(h.nombre || h.habilidad || '').trim().slice(0, 80),
+            nivel: String(h.nivel || 'avanzado').slice(0, 30)
+          }
+        }
+        return null
+      })
+      .filter(h => h && h.nombre)
+
+    const safeHabilidadesBlandas = (Array.isArray(habilidades_blandas) ? habilidades_blandas : [])
+      .slice(0, 50)
+      .map(b => typeof b === 'string' ? b.trim().slice(0, 80) : (b?.nombre ? String(b.nombre).slice(0, 80) : ''))
+      .filter(Boolean)
+
     const { rows: [usuario] } = await query(
       `UPDATE usuarios SET
          nombre = COALESCE($1, nombre),
@@ -73,15 +124,15 @@ router.put('/', requireAuth, async (req, res) => {
                  certificaciones, formacion_no_formal, idiomas,
                  habilidades_tecnicas, habilidades_blandas, created_at, updated_at`,
       [
-        nombre || null,
-        resumen || '',
-        JSON.stringify(Array.isArray(experiencia) ? experiencia : []),
-        JSON.stringify(Array.isArray(educacion_formal) ? educacion_formal : []),
-        JSON.stringify(Array.isArray(formacion_no_formal) ? formacion_no_formal : []),
-        JSON.stringify(Array.isArray(certificaciones) ? certificaciones : []),
-        JSON.stringify(Array.isArray(idiomas) ? idiomas : []),
-        JSON.stringify(Array.isArray(habilidades_tecnicas) ? habilidades_tecnicas : []),
-        JSON.stringify(Array.isArray(habilidades_blandas) ? habilidades_blandas : []),
+        safeNombre,
+        safeResumen,
+        JSON.stringify(safeExperiencia),
+        JSON.stringify(safeEducacionFormal),
+        JSON.stringify(safeFormacionNoFormal),
+        JSON.stringify(safeCertificaciones),
+        JSON.stringify(safeIdiomas),
+        JSON.stringify(safeHabilidadesTecnicas),
+        JSON.stringify(safeHabilidadesBlandas),
         req.user.id
       ]
     )

@@ -111,25 +111,33 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
             border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
             spacing: { before: 200, after: 120 }
           }),
-          ...(llmCvContent.experiencia_adaptada || profile.experiencia || []).map(exp => [
-            new Paragraph({
-              children: [
-                new TextRun({ text: exp.cargo || 'Cargo Profesional', bold: true, size: 21, font: 'Arial', color: '00135B' }),
-                new TextRun({ text: `  |  ${exp.empresa || 'Empresa'}`, bold: true, size: 21, font: 'Arial', color: '475569' }),
-                new TextRun({ text: `\t${exp.desde || '2023'} a ${exp.hasta || 'Presente'}`, italic: true, size: 19, font: 'Arial', color: '64748B' })
-              ],
-              spacing: { before: 100, after: 60 }
-            }),
-            ...( (exp.descripcion || exp.logros || '').split('\n').filter(Boolean).map(bullet => (
+          ...(llmCvContent.experiencia_adaptada || profile.experiencia || []).map(exp => {
+            const rawBullets = Array.isArray(exp.descripcion)
+              ? exp.descripcion
+              : (Array.isArray(exp.logros)
+                  ? exp.logros
+                  : String(exp.descripcion || exp.logros || '').split('\n'))
+
+            return [
               new Paragraph({
-                bullet: { level: 0 },
                 children: [
-                  new TextRun({ text: bullet.replace(/^[•\-*]\s*/, ''), size: 19, font: 'Arial', color: '374151' })
+                  new TextRun({ text: exp.cargo || 'Cargo Profesional', bold: true, size: 21, font: 'Arial', color: '00135B' }),
+                  new TextRun({ text: `  |  ${exp.empresa || 'Empresa'}`, bold: true, size: 21, font: 'Arial', color: '475569' }),
+                  new TextRun({ text: `\t${exp.desde || '2023'} a ${exp.hasta || 'Presente'}`, italic: true, size: 19, font: 'Arial', color: '64748B' })
                 ],
-                spacing: { after: 40 }
-              })
-            )))
-          ]).flat(),
+                spacing: { before: 100, after: 60 }
+              }),
+              ...rawBullets.filter(Boolean).map(bullet => (
+                new Paragraph({
+                  bullet: { level: 0 },
+                  children: [
+                    new TextRun({ text: String(bullet).replace(/^[•\-*]\s*/, ''), size: 19, font: 'Arial', color: '374151' })
+                  ],
+                  spacing: { after: 40 }
+                })
+              ))
+            ]
+          }).flat(),
 
           // ── 4. EDUCACIÓN ───────────────────────────────────────────
           new Paragraph({
@@ -173,14 +181,30 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
           new Paragraph({
             children: [
               new TextRun({ text: 'Habilidades Principales: ', bold: true, size: 20, font: 'Arial', color: '00135B' }),
-              new TextRun({ text: ((profile.habilidades_tecnicas || []).map(h => h.nombre).join(', ') || 'Python, SQL, Power BI, Análitica de Datos'), size: 20, font: 'Arial', color: '374151' })
+              new TextRun({
+                text: ((profile.habilidades_tecnicas || [])
+                  .map(h => typeof h === 'string' ? h : (h?.nombre || h?.habilidad || ''))
+                  .filter(Boolean)
+                  .join(', ') || 'Python, SQL, Power BI, Analítica de Datos'),
+                size: 20,
+                font: 'Arial',
+                color: '374151'
+              })
             ],
             spacing: { after: 60 }
           }),
           new Paragraph({
             children: [
               new TextRun({ text: 'Habilidades Blandas: ', bold: true, size: 20, font: 'Arial', color: '00135B' }),
-              new TextRun({ text: ((profile.habilidades_blandas || []).join(', ') || 'Liderazgo, Resolución de Problemas, Comunicación Ejecutiva'), size: 20, font: 'Arial', color: '374151' })
+              new TextRun({
+                text: ((profile.habilidades_blandas || [])
+                  .map(h => typeof h === 'string' ? h : (h?.nombre || String(h || '')))
+                  .filter(Boolean)
+                  .join(', ') || 'Liderazgo, Resolución de Problemas, Comunicación Ejecutiva'),
+                size: 20,
+                font: 'Arial',
+                color: '374151'
+              })
             ],
             spacing: { after: 200 }
           })
@@ -197,6 +221,8 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
  */
 export async function generateCoverLetterDocx(profile, applicationData, coverLetterText) {
   const fechaHoy = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
+  const rawCl = typeof coverLetterText === 'string' ? coverLetterText : String(coverLetterText?.texto || coverLetterText || '')
+  const clParas = rawCl.split('\n\n').filter(p => p.trim())
 
   const doc = new Document({
     sections: [
@@ -229,7 +255,7 @@ export async function generateCoverLetterDocx(profile, applicationData, coverLet
             spacing: { after: 240 }
           }),
 
-          ...(coverLetterText.split('\n\n').map(p => (
+          ...(clParas.map(p => (
             new Paragraph({
               children: [
                 new TextRun({ text: p.trim(), size: 20, font: 'Arial', color: '374151' })
@@ -261,6 +287,10 @@ export async function generateCoverLetterDocx(profile, applicationData, coverLet
  * Genera el documento .docx para el borrador de Correo de Aplicación.
  */
 export async function generateEmailDocx(profile, applicationData, emailData) {
+  const safeEmailData = emailData && typeof emailData === 'object' ? emailData : {}
+  const rawEmailBody = String(safeEmailData.cuerpo || safeEmailData.contenido || '')
+  const emailParas = rawEmailBody.split('\n\n').filter(p => p.trim())
+
   const doc = new Document({
     sections: [
       {
@@ -279,12 +309,12 @@ export async function generateEmailDocx(profile, applicationData, emailData) {
           new Paragraph({
             children: [
               new TextRun({ text: 'Asunto: ', bold: true, size: 21, font: 'Arial', color: '00387D' }),
-              new TextRun({ text: emailData.asunto || `Postulación a ${applicationData.puesto} - ${profile.nombre}`, size: 21, font: 'Arial', bold: true, color: '1F2937' })
+              new TextRun({ text: safeEmailData.asunto || `Postulación a ${applicationData.puesto} - ${profile.nombre}`, size: 21, font: 'Arial', bold: true, color: '1F2937' })
             ],
             spacing: { after: 200 }
           }),
 
-          ...( (emailData.cuerpo || '').split('\n\n').map(p => (
+          ...(emailParas.map(p => (
             new Paragraph({
               children: [
                 new TextRun({ text: p.trim(), size: 20, font: 'Arial', color: '374151' })

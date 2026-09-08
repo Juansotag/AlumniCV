@@ -14,7 +14,8 @@ import {
   FileText,
   Plus,
   Trash2,
-  Save
+  Save,
+  X
 } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext.jsx'
 import { apiFetch } from '../lib/api.js'
@@ -65,8 +66,25 @@ export default function Profile() {
       setFormacionNoFormal(Array.isArray(u.formacion_no_formal) ? u.formacion_no_formal : [])
       setCertificaciones(Array.isArray(u.certificaciones) ? u.certificaciones : [])
       setIdiomas(Array.isArray(u.idiomas) ? u.idiomas : [])
-      setHabilidadesTecnicas(Array.isArray(u.habilidades_tecnicas) ? u.habilidades_tecnicas : [])
-      setHabilidadesBlandas(Array.isArray(u.habilidades_blandas) ? u.habilidades_blandas : [])
+
+      const rawTech = Array.isArray(u.habilidades_tecnicas) ? u.habilidades_tecnicas : []
+      const normalizedTech = rawTech.map(h => {
+        if (typeof h === 'string') return { categoria: 'software', nombre: h, nivel: 'avanzado' }
+        if (h && typeof h === 'object') {
+          return {
+            categoria: h.categoria || 'software',
+            nombre: h.nombre || h.habilidad || '',
+            nivel: h.nivel || 'avanzado'
+          }
+        }
+        return null
+      }).filter(h => h && h.nombre)
+
+      const rawSoft = Array.isArray(u.habilidades_blandas) ? u.habilidades_blandas : []
+      const normalizedSoft = rawSoft.map(b => typeof b === 'string' ? b : (b?.nombre || '')).filter(Boolean)
+
+      setHabilidadesTecnicas(normalizedTech)
+      setHabilidadesBlandas(normalizedSoft)
     }
   }, [profile])
 
@@ -983,7 +1001,7 @@ export default function Profile() {
                   {habilidadesTecnicas.map((h, i) => (h.categoria === 'software' || h.tipo === 'programa') && (
                     <span key={i} className="badge badge-blue" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem' }}>
                       {h.nombre}
-                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}>✕</button>
+                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
@@ -1008,7 +1026,7 @@ export default function Profile() {
                   {habilidadesTecnicas.map((h, i) => (h.categoria === 'tecnologia_datos' || h.tipo === 'programacion') && (
                     <span key={i} className="badge badge-blue" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem' }}>
                       {h.nombre}
-                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}>✕</button>
+                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
@@ -1033,7 +1051,7 @@ export default function Profile() {
                   {habilidadesTecnicas.map((h, i) => (h.categoria === 'metodologias' || h.tipo === 'conocimiento') && (
                     <span key={i} className="badge badge-blue" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem' }}>
                       {h.nombre}
-                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}>✕</button>
+                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
@@ -1058,7 +1076,7 @@ export default function Profile() {
                   {habilidadesTecnicas.map((h, i) => h.categoria === 'conocimientos_dominio' && (
                     <span key={i} className="badge badge-blue" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem' }}>
                       {h.nombre}
-                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}>✕</button>
+                      <button onClick={() => removeHabilidadTecnica(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
@@ -1083,7 +1101,7 @@ export default function Profile() {
                   {habilidadesBlandas.map((h, i) => (
                     <span key={i} className="badge badge-green" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem' }}>
                       {h}
-                      <button onClick={() => removeHabilidadBlanda(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}>✕</button>
+                      <button onClick={() => removeHabilidadBlanda(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}><X size={12} /></button>
                     </span>
                   ))}
                 </div>
@@ -1108,7 +1126,7 @@ export default function Profile() {
                   {idiomas.map((idi, i) => (
                     <span key={i} className="badge badge-blue" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.6rem' }}>
                       {idi.idioma} ({idi.nivel_mcer || idi.nivel})
-                      <button onClick={() => removeIdioma(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0 }}>✕</button>
+                      <button onClick={() => removeIdioma(i)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}><X size={12} /></button>
                     </span>
                   ))}
                 </div>

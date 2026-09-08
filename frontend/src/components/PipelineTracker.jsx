@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Star, X } from 'lucide-react'
 
 /**
  * PipelineTracker
@@ -233,8 +234,8 @@ export default function PipelineTracker({ pipeline = [], onChange, compact = fal
         )
       case 'estrella':
         return (
-          <div style={{ ...commonBoxStyle, borderRadius: '50%', fontSize: compact ? '11px' : '14px', color: config.color }}>
-            ★
+          <div style={{ ...commonBoxStyle, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: config.color }}>
+            <Star size={compact ? 12 : 15} fill="currentColor" strokeWidth={1} />
           </div>
         )
       default:
@@ -303,7 +304,7 @@ export default function PipelineTracker({ pipeline = [], onChange, compact = fal
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
               <h3 style={{ margin: 0 }}>Editar etapa</h3>
-              <button onClick={() => setSelectedNode(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setSelectedNode(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
             </div>
 
             {/* Estado */}
@@ -414,8 +415,8 @@ export default function PipelineTracker({ pipeline = [], onChange, compact = fal
                         <button
                           onClick={() => handleDeleteHistoryEntry(selectedNode.id, i)}
                           title="Eliminar este registro"
-                          style={{ background: 'var(--c-red)', color: '#fff', border: 'none', borderRadius: '3px', padding: '0.1rem 0.35rem', fontSize: '0.6rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                        >✕</button>
+                          style={{ background: 'var(--c-red)', color: '#fff', border: 'none', borderRadius: '3px', padding: '0.1rem 0.35rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                        ><X size={10} /></button>
                       )}
                     </div>
                     {h.nota && (
@@ -448,7 +449,7 @@ export default function PipelineTracker({ pipeline = [], onChange, compact = fal
           <div className="card" style={{ maxWidth: '360px', width: '100%', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
               <h3 style={{ margin: 0 }}>Agregar etapa</h3>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
             </div>
             {[
               { tipo: 'circulo',   label: 'Entrevista',              desc: 'Entrevista inicial, técnica o directiva' },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Check, Trash2 } from 'lucide-react'
 import { apiFetch } from '../lib/api.js'
 
 export default function NuevaBusqueda() {
@@ -515,14 +515,14 @@ export default function NuevaBusqueda() {
                               marginRight: '0.35rem'
                             }}
                           >
-                            {isAdded ? '✓' : isConverting ? '...' : '+'}
+                            {isAdded ? <Check size={12} /> : isConverting ? '...' : '+'}
                           </button>
                           <button
                             onClick={() => handleDeleteResult(job.id)}
                             title="Eliminar este resultado"
-                            style={{ background: 'none', border: 'none', color: 'var(--c-red)', fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: 'pointer', padding: '0.3rem 0.4rem' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--c-red)', cursor: 'pointer', padding: '0.3rem 0.4rem', display: 'inline-flex', alignItems: 'center' }}
                           >
-                            ✕
+                            <Trash2 size={13} />
                           </button>
                         </td>
                       </tr>

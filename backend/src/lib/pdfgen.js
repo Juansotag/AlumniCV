@@ -16,15 +16,26 @@ function section(doc, titulo) {
   doc.fillColor(BODY).font('Helvetica').fontSize(11)
 }
 
+function toCleanText(item) {
+  if (item === null || item === undefined) return ''
+  if (typeof item === 'string') return item.trim()
+  if (typeof item === 'object') {
+    return item.accion || item.recomendacion || item.texto || item.puesto || item.palabra || item.debilidad || JSON.stringify(item)
+  }
+  return String(item)
+}
+
 function numberedList(doc, items) {
-  items.forEach((item, i) => {
-    doc.text(`${i + 1}. ${item}`, { paragraphGap: 4 })
+  (Array.isArray(items) ? items : []).forEach((item, i) => {
+    const text = toCleanText(item)
+    if (text) doc.text(`${i + 1}. ${text}`, { paragraphGap: 4 })
   })
 }
 
 function bulletList(doc, items) {
-  items.forEach((item) => {
-    doc.text(`•  ${item}`, { paragraphGap: 4 })
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const text = toCleanText(item)
+    if (text) doc.text(`•  ${text}`, { paragraphGap: 4 })
   })
 }
 

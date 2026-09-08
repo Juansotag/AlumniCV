@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
 import { apiFetch } from '../lib/api.js'
 import PipelineTracker from '../components/PipelineTracker.jsx'
 
@@ -224,9 +225,9 @@ export default function MisProcesos() {
           <span>{bgNotification.message}</span>
           <button
             onClick={() => setBgNotification(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, color: 'inherit', marginLeft: '1rem' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, color: 'inherit', marginLeft: '1rem', display: 'flex', alignItems: 'center' }}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
       )}
@@ -380,7 +381,7 @@ export default function MisProcesos() {
           <div className="card" style={{ maxWidth: '520px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <h2 style={{ margin: 0 }}>Generar Documentos .docx</h2>
-              <button onClick={() => setSelectedAppForDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+              <button onClick={() => setSelectedAppForDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
             </div>
             <div style={{ background: 'var(--bg-main)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-sm)' }}>
               <strong>{selectedAppForDoc.puesto}</strong> — {selectedAppForDoc.empresa}
@@ -417,7 +418,7 @@ export default function MisProcesos() {
           <div className="card" style={{ maxWidth: '560px', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <h2 style={{ margin: 0 }}>Registrar Nuevo Proceso Manual</h2>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
             </div>
             <form onSubmit={handleCreateApp} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
