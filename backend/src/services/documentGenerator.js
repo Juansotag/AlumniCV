@@ -23,6 +23,11 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
     ? safeLlmCv.experiencia_adaptada
     : (Array.isArray(profile.experiencia) ? profile.experiencia : [])
 
+  // Lista de educación formal adaptada o del perfil maestro
+  const edus = Array.isArray(safeLlmCv.educacion_adaptada) && safeLlmCv.educacion_adaptada.length > 0
+    ? safeLlmCv.educacion_adaptada
+    : (Array.isArray(profile.educacion_formal) ? profile.educacion_formal : [])
+
   // Lista de certificaciones
   const certs = Array.isArray(safeLlmCv.certificaciones_destacadas) && safeLlmCv.certificaciones_destacadas.length > 0
     ? safeLlmCv.certificaciones_destacadas
@@ -165,11 +170,20 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
       spacing: { before: 200, after: 120 }
     }),
     ...exps.map(exp => {
-      const rawBullets = Array.isArray(exp.descripcion)
-        ? exp.descripcion
-        : (Array.isArray(exp.logros)
-            ? exp.logros
-            : String(exp.descripcion || exp.logros || '').split('\n'))
+      let rawBullets = []
+      if (Array.isArray(exp.logros) && exp.logros.length > 0) {
+        rawBullets = exp.logros
+      } else if (Array.isArray(exp.descripcion)) {
+        rawBullets = exp.descripcion
+      } else if (typeof exp.logros === 'string' && exp.logros.trim()) {
+        rawBullets = exp.logros.split(/\n+|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/)
+      } else if (typeof exp.descripcion === 'string' && exp.descripcion.trim()) {
+        rawBullets = exp.descripcion.split(/\n+|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/)
+      }
+
+      const cleanBullets = rawBullets
+        .map(b => String(b).replace(/^[•\-*]\s*/, '').trim())
+        .filter(b => b.length > 8)
 
       const modalidadTag = exp.modalidad ? `  [${exp.modalidad}]` : ''
 
@@ -180,15 +194,15 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
             new TextRun({ text: `  |  ${exp.empresa || 'Empresa'}${modalidadTag}`, bold: true, size: 21, font: 'Arial', color: '475569' }),
             new TextRun({ text: `\t${exp.desde || '2022'} a ${exp.hasta || 'Presente'}`, italic: true, size: 19, font: 'Arial', color: '64748B' })
           ],
-          spacing: { before: 120, after: 60 }
+          spacing: { before: 140, after: 60 }
         }),
-        ...rawBullets.filter(Boolean).map(bullet => (
+        ...cleanBullets.map(bullet => (
           new Paragraph({
             bullet: { level: 0 },
             children: [
-              new TextRun({ text: String(bullet).replace(/^[•\-*]\s*/, ''), size: 19, font: 'Arial', color: '374151' })
+              new TextRun({ text: bullet, size: 19, font: 'Arial', color: '374151' })
             ],
-            spacing: { after: 40 }
+            spacing: { after: 50, line: 250 }
           })
         ))
       ]
@@ -208,17 +222,46 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
       border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
       spacing: { before: 240, after: 120 }
     }),
-    ...(profile.educacion_formal || []).map(edu => {
-      const datesText = edu.desde && edu.hasta ? `${edu.desde} a ${edu.hasta}` : (edu.anio ? `${edu.anio}` : (edu.hasta || ''))
-      return new Paragraph({
-        children: [
-          new TextRun({ text: edu.titulo || 'Grado Académico', bold: true, size: 21, font: 'Arial', color: '1F2937' }),
-          new TextRun({ text: `  |  ${edu.institucion || 'Institución Universitaria'}`, size: 20, font: 'Arial', color: '475569' }),
-          ...(datesText ? [new TextRun({ text: `\t${datesText}`, italic: true, size: 19, font: 'Arial', color: '64748B' })] : [])
-        ],
-        spacing: { after: 80 }
-      })
-    })
+    ...edus.map(edu => {
+      const datesText = edu.periodo || (edu.desde && edu.hasta ? `${edu.desde} a ${edu.hasta}` : (edu.anio ? `${edu.anio}` : (edu.hasta || '')))
+      const eduTitle = edu.titulo || 'Grado Académico'
+      const eduInst = edu.institucion || 'Institución Universitaria'
+
+      let rawDetails = []
+      if (Array.isArray(edu.detalles) && edu.detalles.length > 0) {
+        rawDetails = edu.detalles
+      } else if (Array.isArray(edu.logros) && edu.logros.length > 0) {
+        rawDetails = edu.logros
+      } else if (typeof edu.descripcion === 'string' && edu.descripcion.trim()) {
+        rawDetails = edu.descripcion.split(/\n+|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/)
+      } else if (edu.tesis) {
+        rawDetails.push(`Tesis de grado / Investigación: ${edu.tesis}`)
+      }
+
+      const cleanDetails = rawDetails
+        .map(d => String(d).replace(/^[•\-*]\s*/, '').trim())
+        .filter(d => d.length > 8)
+
+      return [
+        new Paragraph({
+          children: [
+            new TextRun({ text: eduTitle, bold: true, size: 21, font: 'Arial', color: '1F2937' }),
+            new TextRun({ text: `  |  ${eduInst}`, size: 20, font: 'Arial', color: '475569' }),
+            ...(datesText ? [new TextRun({ text: `\t${datesText}`, italic: true, size: 19, font: 'Arial', color: '64748B' })] : [])
+          ],
+          spacing: { before: 100, after: cleanDetails.length > 0 ? 40 : 80 }
+        }),
+        ...cleanDetails.map(detail => (
+          new Paragraph({
+            bullet: { level: 0 },
+            children: [
+              new TextRun({ text: detail, size: 19, font: 'Arial', color: '475569' })
+            ],
+            spacing: { after: 40, line: 250 }
+          })
+        ))
+      ]
+    }).flat()
   ]
 
   // ── 5. CERTIFICACIONES PROFESIONALES (Si existen) ────────────
@@ -387,9 +430,9 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
         properties: {
           page: {
             margin: {
-              top: 720,    // 0.5 in
-              bottom: 720,
-              left: 1080,  // 0.75 in
+              top: 1000,    // ~0.7 in
+              bottom: 1000,
+              left: 1080,   // 0.75 in
               right: 1080
             }
           }

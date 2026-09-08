@@ -107,9 +107,12 @@ PRINCIPIOS FUNDAMENTALES DE REDACCIÓN EJECUTIVA:
 5. CORREO DE POSTULACIÓN:
    - Asunto profesional, directo y pulcro.
    - Cuerpo conciso (2 párrafos ejecutivos), formal, que invite cordialmente a revisar los documentos adjuntos (Hoja de Vida y Carta de Presentación) y facilite canales de contacto.
-6. HOJA DE VIDA:
-   - Debe constar de 1 a 2 páginas, dependiendo de la experiencia del candidato.
-   - Adapta el perfil profesional del siguiente candidato para postularse con máxima ventaja competitiva a la vacante objetivo.`
+6. HOJA DE VIDA EJECUTIVA (DENSIDAD PROFESIONAL Y LONGITUD DE 1 A 2 PÁGINAS):
+   - Densidad y estructura ejecutiva: Una hoja de vida corporativa de alto impacto NUNCA es diminuta ni escueta.
+   - Para CADA cargo laboral, DEBES desglosar OBLIGATORIAMENTE entre 3 y 5 viñetas (bullets) sustanciales, profundas y exhaustivas en el array "logros". Queda estrictamente prohibido generar un solo resumen o una única viñeta por cargo.
+   - Cada viñeta laboral debe tener entre 20 y 45 palabras y estructurarse bajo el método STAR (Situación, Tarea, Acción, Resultado medible), empleando verbos de acción en tercera persona ("Lideró", "Diseñó", "Estructuró", "Negoció", "Optimizó") e incorporando métricas cuantificables (%, cifras, presupuestos, población atendida, indicadores de impacto).
+   - Para CADA grado de educación formal, DEBES generar en el array "detalles" de 1 a 2 viñetas que expongan la tesis de grado o investigación aplicada, honores/distinciones académicas, o énfasis temático directamente conectado con el puesto.
+   - Perfil profesional sólido (4 a 6 líneas) que sintetice años de experiencia, especialidad de dominio, competencias diferenciales y propuesta de valor hacia la empresa.`
 
     const promptGen = `
 DATOS DE LA VACANTE OBJETIVO:
@@ -140,16 +143,17 @@ DATOS DEL CANDIDATO (PERFIL MAESTRO INTEGRAL):
 INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA ESTRATÉGICA:
 El Perfil Maestro del candidato es su inventario profesional completo. Tu rol como headhunter senior de clase mundial es CURAR y ADAPTAR estratégicamente la información para maximizar las probabilidades de entrevista para ${application.puesto} en ${application.empresa}:
 1. "titular_adaptado": Título profesional y de especialidad adaptado con máxima precisión a ${application.puesto}, combinando la formación y trayectoria del candidato.
-2. "resumen_adaptado": Redacta un perfil ejecutivo de 3 a 4 oraciones de altísimo impacto, sin clichés, resaltando el valor diferencial concreto que aporta a ${application.empresa}.
-3. "experiencia_adaptada": Selecciona y adapta las experiencias más relevantes del Perfil Maestro (conservando empresa, cargo, fechas y modalidad de trabajo si aplica). Reescribe las descripciones en viñetas contundentes con metodología STAR (Situación, Tarea, Acción, Resultado con métricas, herramientas y contexto).
-4. "habilidades_tecnicas_destacadas": Selecciona y ordena las 6 a 10 habilidades técnicas y herramientas del Perfil Maestro que mayor relevancia tienen para la vacante de ${application.puesto}.
-5. "habilidades_blandas_destacadas": Selecciona las 4 a 6 competencias conductuales y de liderazgo más pertinentes para el rol.
-6. "certificaciones_destacadas": Selecciona las certificaciones y licencias del candidato que respalden su idoneidad para el puesto.
-7. "formacion_no_formal_destacada": Selecciona los diplomados, minors y programas de especialización más afines al puesto.
-8. "idiomas_destacados": Lista de idiomas del candidato con su nivel.
-9. "palabras_clave_destacadas": Lista de 6 a 10 palabras clave ATS estratégicas coincidentes entre el perfil y la vacante.
-10. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elocuente, persuasiva y formal (3 a 4 párrafos que expongan logros concretos y afinidad de propósito).
-11. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
+2. "resumen_adaptado": Redacta un perfil ejecutivo de 4 a 6 líneas de altísimo impacto, sin clichés, resaltando la propuesta de valor diferencial y las capacidades operativas y estratégicas que aporta a ${application.empresa}.
+3. "experiencia_adaptada": Para CADA experiencia laboral del Perfil Maestro (o las más relevantes si tiene más de 5), genera un objeto que conserve empresa, cargo, fechas y modalidad de trabajo, y un array "logros" con OBLIGATORIAMENTE entre 3 y 5 viñetas (bullets) detalladas, profundas y contundentes redactadas con el método STAR (Situación, Tarea, Acción, Resultado con métricas, herramientas y contexto). Queda TERMINANTEMENTE PROHIBIDO resumir un cargo en una sola viñeta o en un párrafo corto.
+4. "educacion_adaptada": Para CADA título de educación formal del Perfil Maestro, genera un objeto con titulo, institucion, periodo y un array "detalles" con 1 a 2 viñetas que expongan la tesis de investigación aplicada, distinciones o proyectos académicos de alta afinidad con ${application.puesto}.
+5. "habilidades_tecnicas_destacadas": Selecciona y ordena las 6 a 10 habilidades técnicas y herramientas del Perfil Maestro que mayor relevancia tienen para la vacante de ${application.puesto}.
+6. "habilidades_blandas_destacadas": Selecciona las 4 a 6 competencias conductuales y de liderazgo más pertinentes para el rol.
+7. "certificaciones_destacadas": Selecciona las certificaciones y licencias del candidato que respalden su idoneidad para el puesto.
+8. "formacion_no_formal_destacada": Selecciona los diplomados, minors y programas de especialización más afines al puesto.
+9. "idiomas_destacados": Lista de idiomas del candidato con su nivel.
+10. "palabras_clave_destacadas": Lista de 6 a 10 palabras clave ATS estratégicas coincidentes entre el perfil y la vacante.
+11. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elocuente, persuasiva y formal (3 a 4 párrafos que expongan logros concretos y afinidad de propósito).
+12. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
 
 Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
 {
@@ -163,7 +167,23 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
         "desde": "string",
         "hasta": "string",
         "modalidad": "string o null",
-        "descripcion": "string"
+        "logros": [
+          "string (viñeta 1 detallada STAR)",
+          "string (viñeta 2 detallada STAR)",
+          "string (viñeta 3 detallada STAR)",
+          "string (viñeta 4 detallada STAR)"
+        ]
+      }
+    ],
+    "educacion_adaptada": [
+      {
+        "titulo": "string",
+        "institucion": "string",
+        "periodo": "string",
+        "detalles": [
+          "string (tesis, proyecto de investigación o logro académico 1)",
+          "string (distinción o área de profundización 2)"
+        ]
       }
     ],
     "habilidades_tecnicas_destacadas": ["string"],
@@ -350,7 +370,7 @@ router.post('/:id/replace', requireAuth, docUpload.single('file'), async (req, r
       if (decoded && !decoded.includes('\ufffd')) {
         originalName = decoded
       }
-    } catch {}
+    } catch { }
 
     const ext = path.extname(originalName).toLowerCase() || '.docx'
     const contentType = ext === '.pdf'
