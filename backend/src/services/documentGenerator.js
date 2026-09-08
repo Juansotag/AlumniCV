@@ -222,7 +222,7 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
         .map(b => String(b).replace(/^[•\-*]\s*/, '').trim())
         .filter(b => b.length > 8)
 
-      if (cleanBullets.length === 1 && cleanBullets[0].length > 120) {
+      if (cleanBullets.length === 1 && cleanBullets[0].length > 80) {
         const sentenceSplit = cleanBullets[0].split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/).filter(s => s.trim().length > 10)
         if (sentenceSplit.length > 1) {
           cleanBullets = sentenceSplit
@@ -230,13 +230,15 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
       }
 
       const modalidadTag = exp.modalidad ? `  [${exp.modalidad}]` : ''
+      const hastaText = (!exp.hasta || exp.hasta === 'null') ? 'Presente' : exp.hasta
+      const desdeText = exp.desde || '2022'
 
       return [
         new Paragraph({
           children: [
             new TextRun({ text: exp.cargo || 'Cargo Profesional', bold: true, size: 22, font: 'Arial', color: '00135B' }),
             new TextRun({ text: `  |  ${exp.empresa || 'Empresa'}${modalidadTag}`, bold: true, size: 21, font: 'Arial', color: '475569' }),
-            new TextRun({ text: `\t${exp.desde || '2022'} a ${exp.hasta || 'Presente'}`, italic: true, size: 20, font: 'Arial', color: '64748B' })
+            new TextRun({ text: `\t${desdeText} a ${hastaText}`, italic: true, size: 20, font: 'Arial', color: '64748B' })
           ],
           spacing: { before: 160, after: 60 }
         }),
@@ -267,7 +269,17 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
       spacing: { before: 260, after: 120 }
     }),
     ...edus.map(edu => {
-      const datesText = edu.periodo || (edu.desde && edu.hasta ? `${edu.desde} a ${edu.hasta}` : (edu.anio ? `${edu.anio}` : (edu.hasta || '')))
+      let datesText = edu.periodo
+      if (!datesText) {
+        const hastaVal = (!edu.hasta || edu.hasta === 'null') ? (edu.estado === 'en_curso' ? 'En curso' : '') : edu.hasta
+        if (edu.desde && hastaVal) {
+          datesText = `${edu.desde} a ${hastaVal}`
+        } else if (edu.anio) {
+          datesText = `${edu.anio}`
+        } else if (hastaVal) {
+          datesText = `${hastaVal}`
+        }
+      }
       const eduTitle = edu.titulo || 'Grado Académico'
       const eduInst = edu.institucion || 'Institución Universitaria'
 
@@ -286,10 +298,25 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
         .map(d => String(d).replace(/^[•\-*]\s*/, '').trim())
         .filter(d => d.length > 8)
 
-      if (cleanDetails.length === 1 && cleanDetails[0].length > 120) {
+      if (cleanDetails.length === 1 && cleanDetails[0].length > 80) {
         const sSplit = cleanDetails[0].split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/).filter(s => s.trim().length > 10)
         if (sSplit.length > 1) {
           cleanDetails = sSplit
+        }
+      }
+
+      // Si no tiene detalles explícitos, derivar énfasis académico de alto valor
+      if (cleanDetails.length === 0) {
+        const tLower = eduTitle.toLowerCase()
+        if (tLower.includes('analítica') || tLower.includes('data') || tLower.includes('inteligencia artificial')) {
+          cleanDetails.push('Profundización en modelado predictivo, arquitecturas de Machine Learning y Deep Learning aplicadas a la optimización de procesos de negocio.')
+          cleanDetails.push('Desarrollo de proyectos de investigación aplicada con rigor estadístico y experimentación computacional avanzada.')
+        } else if (tLower.includes('economía') || tLower.includes('finanzas')) {
+          cleanDetails.push('Formación avanzada en econometría aplicada, modelado cuantitativo, inferencia causal y análisis de series de tiempo.')
+          cleanDetails.push('Capacidad para evaluar el impacto económico y financiero de decisiones analíticas en entornos globales.')
+        } else if (tLower.includes('política') || tLower.includes('gobierno') || tLower.includes('sociales')) {
+          cleanDetails.push('Enfoque en evaluación de políticas públicas basadas en evidencia y análisis multidimensional de datos.')
+          cleanDetails.push('Habilidad para comunicar resultados analíticos complejos y alinear partes interesadas en contextos institucionales.')
         }
       }
 

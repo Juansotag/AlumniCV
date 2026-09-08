@@ -91,71 +91,84 @@ router.post('/generate', requireAuth, async (req, res) => {
     )
     if (!profile) return res.status(404).json({ error: 'Perfil de usuario no encontrado' })
 
-    const systemPrompt = `Eres un Asesor Ejecutivo Senior de Empleabilidad y Headhunter Corporativo de Alumni Sabana (Universidad de La Sabana).
-Tu especialidad es redactar documentos de postulación ejecutiva de altísimo impacto, persuasión profesional y alineación rigurosa con filtros ATS (Applicant Tracking Systems) y directores de Selección de Talento.
+    const systemPrompt = `Eres el Asesor Ejecutivo Principal de Empleabilidad de Alta Dirección y Headhunter Corporativo Senior de Alumni Sabana (Universidad de La Sabana).
+Tu especialidad es redactar documentos de postulación ejecutiva de nivel Fortune 500 y Big Tech, logrando una tasa del 100% de éxito en filtros ATS (Applicant Tracking Systems) y causando una impresión excepcional ante Directores de Talento, VPs y Comités de Contratación.
 
 PRINCIPIOS FUNDAMENTALES DE REDACCIÓN EJECUTIVA:
-1. TONO: Formal, sofisticado, persuasivo, seguro y orientado a resultados. En español impecable y culto.
-2. PROHIBICIÓN DE CLICHÉS: Queda estrictamente prohibido usar frases vagas como "persona proactiva", "apasionado por", "con ganas de aprender", "dinámico y motivado". Toda afirmación debe sustentarse en hechos, competencias y valor agregado concreto.
-3. MÉTRICAS Y LOGROS (MÉTODO STAR / GOOGLE X-Y-Z): Al describir experiencias laborales, cada punto debe reflejar responsabilidades estratégicas e hitos de impacto medible (usando verbos de acción en tercera persona: "Lideró", "Implementó", "Optimizó", "Diseñó", "Estructuró").
+1. TONO: Formal, de alta autoridad intelectual, sofisticado, persuasivo, seguro y orientado a resultados medibles. En español impecable y culto.
+2. PRESERVACIÓN Y AMPLIFICACIÓN DE MÉTRICAS Y KPIs REALES (REGLA DE ORO):
+   - Queda TERMINANTEMENTE PROHIBIDO omitir, diluir, ignorar o reemplazar por generalidades las métricas numéricas, porcentajes, cifras monetarias, volúmenes de registros/datos, tecnologías específicas y nombres propios de clientes o instituciones que el candidato ha consignado en su perfil.
+   - Toda cifra o métrica mencionada por el candidato (e.g. "450.000 registros", "USD 1 millón en medios", "40 municipios", "100 startups", "150 estudiantes", etc.) y entidades aliadas (ICBF, UNICEF, Banco Santander, Invamer, Forbes, Alcaldía de Sopó, FONDECUN, etc.) DEBEN estar explícitamente incorporadas y destacadas en las viñetas laborales correspondientes.
+   - Aplica rigurosamente la fórmula Google / Harvard para viñetas ejecutivas:
+     [Verbo de acción en tercera persona ("Lideró", "Diseñó", "Desarrolló", "Estructuró", "Optimizó")] + [Qué construyó o implementó con tecnologías y metodologías específicas] + [Métrica cuantitativa / KPI / Impacto demostrable] + [Contexto estratégico / Metodología / Stakeholder].
+3. DENSIDAD PROFESIONAL Y COBERTURA DEL 100%:
+   - Para TODOS Y CADA UNO de los cargos laborales del perfil del candidato, genera OBLIGATORIAMENTE entre 3 y 5 viñetas sustanciales (de 25 a 45 palabras cada una) en el array "logros". Queda terminantemente prohibido generar menos de 3 viñetas para ningún cargo.
+   - Para TODAS Y CADA UNA de las titulaciones de educación formal del perfil, genera OBLIGATORIAMENTE entre 2 y 3 viñetas sustanciales en el array "detalles", articulando proyectos de investigación aplicada, tesis, modelado econométrico o cuantitativo, y conexión directa con el cargo postulado.
 4. CARTA DE PRESENTACIÓN EJECUTIVA:
-   - Debe constar de 3 a 4 párrafos sustanciales, elocuentes y personalizados para la empresa.
-   - Párrafo 1: Postulación formal al cargo en la empresa, demostrando conocimiento de su industria y planteando la propuesta de valor del candidato.
-   - Párrafo 2: Exposición del mayor logro o trayectoria más relevante del candidato directamente vinculada al desafío principal del puesto.
-   - Párrafo 3: Sinergia de habilidades técnicas, visión estratégica y alineación con la cultura corporativa de la organización.
-   - Párrafo 4: Agradecimiento formal por la evaluación, reiterando disposición para entrevista ejecutiva y cierre protocolario formal.
+   - Debe constar de 3 a 4 párrafos sustanciales, elocuentes y personalizados para la empresa y el cargo.
+   - Párrafo 1: Postulación formal y alineación con los objetivos estratégicos de la empresa.
+   - Párrafo 2: Exposición de los mayores logros cuantitativos y trayectoria más relevante vinculada al desafío principal del puesto.
+   - Párrafo 3: Sinergia de habilidades técnicas de vanguardia, liderazgo analítico y propuesta de valor diferencial.
+   - Párrafo 4: Agradecimiento protocolario y disposición para entrevista.
 5. CORREO DE POSTULACIÓN:
    - Asunto profesional, directo y pulcro.
-   - Cuerpo conciso (2 párrafos ejecutivos), formal, que invite cordialmente a revisar los documentos adjuntos (Hoja de Vida y Carta de Presentación) y facilite canales de contacto.
-6. HOJA DE VIDA EJECUTIVA (DENSIDAD PROFESIONAL Y LONGITUD DE 1 A 2 PÁGINAS):
-   - Densidad y estructura ejecutiva: Una hoja de vida corporativa de alto impacto NUNCA es diminuta ni escueta.
-   - Para CADA cargo laboral, DEBES desglosar OBLIGATORIAMENTE entre 3 y 5 viñetas (bullets) sustanciales, profundas y exhaustivas en el array "logros". Queda estrictamente prohibido generar un solo resumen o una única viñeta por cargo.
-   - Cada viñeta laboral debe tener entre 20 y 45 palabras y estructurarse bajo el método STAR (Situación, Tarea, Acción, Resultado medible), empleando verbos de acción en tercera persona ("Lideró", "Diseñó", "Estructuró", "Negoció", "Optimizó") e incorporando métricas cuantificables (%, cifras, presupuestos, población atendida, indicadores de impacto).
-   - Para CADA grado de educación formal, DEBES generar en el array "detalles" de 1 a 2 viñetas que expongan la tesis de grado o investigación aplicada, honores/distinciones académicas, o énfasis temático directamente conectado con el puesto.
-   - Perfil profesional sólido (4 a 6 líneas) que sintetice años de experiencia, especialidad de dominio, competencias diferenciales y propuesta de valor hacia la empresa.`
+   - Cuerpo conciso (2 párrafos ejecutivos), formal, invitando a revisar los adjuntos y facilitando canales de contacto.
+6. ALINEACIÓN TOTAL CON LA VACANTE OBJETIVO:
+   - Analiza a fondo los requerimientos y lenguaje de la vacante para sincronizar el titular, el resumen y las viñetas con la cultura y expectativas del empleador.`
+
+    const educacionList = Array.isArray(profile.educacion_formal) ? profile.educacion_formal : []
+    const experienciaList = Array.isArray(profile.experiencia) ? profile.experiencia : []
 
     const promptGen = `
 DATOS DE LA VACANTE OBJETIVO:
 - Empresa: ${application.empresa}
 - Cargo / Rol: ${application.puesto}
-- Descripción / Requisitos: ${application.descripcion_corta || 'No especificada'}
+- Descripción y Requisitos del Puesto:
+${application.descripcion_corta || 'No especificada'}
 - Modalidad de trabajo: ${application.modalidad || 'Híbrida'}
-- Seniority: ${application.seniority || 'No especificado'}
+- Seniority: ${application.seniority || 'Senior / Lead'}
 
-DATOS DEL CANDIDATO (PERFIL MAESTRO INTEGRAL):
+DATOS DEL CANDIDATO (PERFIL MAESTRO COMPLETO):
 - Nombre completo: ${profile.nombre || 'Candidato UniSabana'}
 - Titular actual: ${profile.titular || 'Profesional'}
 - Ubicación: ${profile.ubicacion || 'Bogotá, Colombia'}
 - Teléfono: ${profile.telefono || 'No especificado'}
 - Correo institucional: ${profile.correo || 'No especificado'}
 - Correo personal: ${profile.correo_personal || 'No especificado'}
-- Enlaces y redes: ${JSON.stringify(profile.links || [])}
+- Enlaces profesionales: ${JSON.stringify(profile.links || [])}
 - Resumen maestro: ${profile.resumen || ''}
-- Historial completo de experiencias laborales: ${JSON.stringify(profile.experiencia || [])}
-- Educación formal (Pregrados, Posgrados, Maestrías): ${JSON.stringify(profile.educacion_formal || [])}
-- Formación no formal (Diplomados, Minors, Cursos de especialización): ${JSON.stringify(profile.formacion_no_formal || [])}
-- Certificaciones profesionales y licencias: ${JSON.stringify(profile.certificaciones || [])}
-- Habilidades técnicas y herramientas categorizadas: ${JSON.stringify(profile.habilidades_tecnicas || [])}
-- Habilidades blandas y de liderazgo: ${JSON.stringify(profile.habilidades_blandas || [])}
-- Idiomas y niveles: ${JSON.stringify(profile.idiomas || [])}
-- Referencias laborales y personales: ${JSON.stringify([...(profile.referencias_laborales || []), ...(profile.referencias_personales || [])])}
+- Historial completo de experiencias laborales (${experienciaList.length} cargos obligatorios):
+${JSON.stringify(experienciaList, null, 2)}
+- Educación formal completa (${educacionList.length} títulos obligatorios):
+${JSON.stringify(educacionList, null, 2)}
+- Formación no formal / Diplomados:
+${JSON.stringify(profile.formacion_no_formal || [], null, 2)}
+- Certificaciones profesionales:
+${JSON.stringify(profile.certificaciones || [], null, 2)}
+- Habilidades técnicas y herramientas categorizadas:
+${JSON.stringify(profile.habilidades_tecnicas || [], null, 2)}
+- Habilidades blandas y de liderazgo:
+${JSON.stringify(profile.habilidades_blandas || [], null, 2)}
+- Idiomas y niveles:
+${JSON.stringify(profile.idiomas || [], null, 2)}
+- Referencias:
+${JSON.stringify([...(profile.referencias_laborales || []), ...(profile.referencias_personales || [])])}
 
-INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA ESTRATÉGICA:
-El Perfil Maestro del candidato es su inventario profesional completo. Tu rol como headhunter senior de clase mundial es CURAR y ADAPTAR estratégicamente la información para maximizar las probabilidades de entrevista para ${application.puesto} en ${application.empresa}:
-1. "titular_adaptado": Título profesional y de especialidad adaptado con máxima precisión a ${application.puesto}, combinando la formación y trayectoria del candidato.
-2. "resumen_adaptado": Redacta un perfil ejecutivo de 4 a 6 líneas de altísimo impacto, sin clichés, resaltando la propuesta de valor diferencial y las capacidades operativas y estratégicas que aporta a ${application.empresa}.
-3. "experiencia_adaptada": DEBES incluir TODAS las experiencias laborales presentes en el Perfil Maestro (no omitas ningún cargo ni empresa del historial). Para CADA experiencia laboral, genera un objeto que conserve empresa, cargo, fechas y modalidad de trabajo, y un array "logros" con OBLIGATORIAMENTE entre 3 y 5 viñetas (bullets) detalladas, profundas y contundentes (de 25 a 45 palabras cada una) redactadas con el método STAR (Situación, Tarea, Acción, Resultado con métricas cuantificables %, herramientas y contexto). Queda TERMINANTEMENTE PROHIBIDO resumir un cargo en una sola viñeta o en un párrafo corto.
-4. "educacion_adaptada": DEBES incluir TODOS los títulos de educación formal del Perfil Maestro (pregrados, especializaciones y maestrías). Para CADA título, genera un objeto con titulo, institucion, periodo y un array "detalles" con OBLIGATORIAMENTE 2 a 3 viñetas que expongan la tesis de investigación aplicada, proyectos académicos, distinciones o áreas de profundización de alta afinidad con ${application.puesto}.
-5. "habilidades_tecnicas_destacadas": Selecciona y ordena las 6 a 10 habilidades técnicas y herramientas del Perfil Maestro que mayor relevancia tienen para la vacante de ${application.puesto}.
-6. "habilidades_blandas_destacadas": Selecciona las 4 a 6 competencias conductuales y de liderazgo más pertinentes para el rol.
-7. "certificaciones_destacadas": Selecciona las certificaciones y licencias del candidato que respalden su idoneidad para el puesto.
-8. "formacion_no_formal_destacada": Selecciona los diplomados, minors y programas de especialización más afines al puesto.
-9. "idiomas_destacados": Lista de idiomas del candidato con su nivel.
-10. "palabras_clave_destacadas": Lista de 6 a 10 palabras clave ATS estratégicas coincidentes entre el perfil y la vacante.
-11. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elocuente, persuasiva y formal (3 a 4 párrafos que expongan logros concretos y afinidad de propósito).
-12. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
+INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA:
+1. "titular_adaptado": Título ejecutivo de alto nivel adaptado con máxima precisión a ${application.puesto} en ${application.empresa}.
+2. "resumen_adaptado": Perfil profesional ejecutivo de 5 a 6 líneas de altísimo impacto, sin clichés, destacando la propuesta de valor diferencial y las capacidades operativas y estratégicas que aporta a ${application.empresa}.
+3. "experiencia_adaptada": DEBES incluir los ${experienciaList.length} cargos del candidato sin omitir ninguno. Para CADA cargo, genera un objeto con empresa, cargo, desde, hasta, modalidad, y un array "logros" con OBLIGATORIAMENTE entre 3 y 5 viñetas detalladas STAR (de 25 a 45 palabras cada una). DEBES MANTENER TODOS LOS DATOS Y KPIs REALES (cifras de registros, USD generados, municipios, modelos de machine learning, clientes corporativos y entidades aliadas).
+4. "educacion_adaptada": DEBES incluir los ${educacionList.length} títulos de educación formal del perfil sin omitir ninguno. Para CADA título, genera titulo, institucion, periodo y un array "detalles" con OBLIGATORIAMENTE entre 2 y 3 viñetas sustanciales que demuestren cómo la investigación, modelado cuantitativo y rigor académico de esa titulación fortalecen su idoneidad para ${application.puesto}.
+5. "habilidades_tecnicas_destacadas": Selecciona y ordena entre 8 y 12 habilidades técnicas del perfil que mayor relevancia tengan para ${application.puesto}.
+6. "habilidades_blandas_destacadas": Selecciona entre 5 y 6 competencias conductuales y de liderazgo más pertinentes.
+7. "certificaciones_destacadas": Lista de certificaciones del candidato pertinentes.
+8. "formacion_no_formal_destacada": Programas de formación continua del candidato pertinentes.
+9. "idiomas_destacados": Idiomas con su nivel.
+10. "palabras_clave_destacadas": Lista de 8 a 12 palabras clave ATS estratégicas para la vacante.
+11. "cover_letter": Redacta una carta de presentación ejecutiva formal (3 a 4 párrafos elocuentes y persuasivos) personalizada para ${application.empresa}.
+12. "correo": Asunto y cuerpo formal para el envío de postulación.
 
-Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
+Devuelve estrictamente un objeto JSON con este esquema exacto:
 {
   "cv": {
     "titular_adaptado": "string",
@@ -168,10 +181,10 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
         "hasta": "string",
         "modalidad": "string o null",
         "logros": [
-          "string (viñeta 1 detallada STAR)",
-          "string (viñeta 2 detallada STAR)",
-          "string (viñeta 3 detallada STAR)",
-          "string (viñeta 4 detallada STAR)"
+          "string (viñeta 1 detallada STAR con KPIs reales)",
+          "string (viñeta 2 detallada STAR con KPIs reales)",
+          "string (viñeta 3 detallada STAR con KPIs reales)",
+          "string (viñeta 4 detallada STAR con KPIs reales)"
         ]
       }
     ],
@@ -181,8 +194,8 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
         "institucion": "string",
         "periodo": "string",
         "detalles": [
-          "string (tesis, proyecto de investigación o logro académico 1)",
-          "string (distinción o área de profundización 2)"
+          "string (investigación, econometría o foco académico aplicado 1)",
+          "string (competencia diferencial o distinción 2)"
         ]
       }
     ],

@@ -116,6 +116,8 @@ export default function MisDocumentos() {
           setPreviewLoading(false)
         } else {
           // Es .docx: Renderizar con docx-preview con paginacion real y estilos
+          // Asegurar que el contenedor DOM esté listo
+          await new Promise(r => setTimeout(r, 40))
           if (previewContainerRef.current) {
             previewContainerRef.current.innerHTML = ''
             await docx.renderAsync(blob, previewContainerRef.current, null, {
@@ -127,7 +129,9 @@ export default function MisDocumentos() {
               experimental: true
             })
           }
-          setPreviewLoading(false)
+          if (isMounted) {
+            setPreviewLoading(false)
+          }
         }
       } catch (err) {
         console.error('Error renderizando previsualización:', err)
@@ -740,7 +744,7 @@ export default function MisDocumentos() {
               )}
 
               {/* Visor interactivo DOCX */}
-              {!pdfPreviewUrl && !previewLoading && !previewError && (
+              {!pdfPreviewUrl && !previewError && (
                 <div
                   ref={previewContainerRef}
                   style={{
@@ -749,7 +753,10 @@ export default function MisDocumentos() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    visibility: previewLoading ? 'hidden' : 'visible',
+                    height: previewLoading ? '0px' : 'auto',
+                    overflow: previewLoading ? 'hidden' : 'visible'
                   }}
                 />
               )}
