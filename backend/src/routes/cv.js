@@ -101,6 +101,11 @@ router.post('/upload', requireAuth, upload.single('cv'), async (req, res) => {
     // 3. Extraer perfil estructurado y actualizar usuarios con sanitización defensiva
     const rawPerfil = await parseCvText(cvText)
     const perfil = {
+      titular: typeof rawPerfil?.titular === 'string' && rawPerfil.titular.trim() ? rawPerfil.titular.trim().slice(0, 150) : null,
+      telefono: typeof rawPerfil?.telefono === 'string' && rawPerfil.telefono.trim() ? rawPerfil.telefono.trim().slice(0, 40) : null,
+      correo_personal: typeof rawPerfil?.correo_personal === 'string' && rawPerfil.correo_personal.trim() ? rawPerfil.correo_personal.trim().slice(0, 120) : null,
+      ubicacion: typeof rawPerfil?.ubicacion === 'string' && rawPerfil.ubicacion.trim() ? rawPerfil.ubicacion.trim().slice(0, 100) : null,
+      links: Array.isArray(rawPerfil?.links) ? rawPerfil.links.filter(l => l && (l.url || typeof l === 'string')) : [],
       resumen: typeof rawPerfil?.resumen === 'string' ? rawPerfil.resumen.trim() : null,
       experiencia: Array.isArray(rawPerfil?.experiencia) ? rawPerfil.experiencia : [],
       educacion_formal: Array.isArray(rawPerfil?.educacion_formal) ? rawPerfil.educacion_formal : [],
@@ -113,17 +118,27 @@ router.post('/upload', requireAuth, upload.single('cv'), async (req, res) => {
 
     const { rows: [usuario] } = await query(
       `UPDATE usuarios SET
-         resumen = $1,
-         experiencia = $2,
-         educacion_formal = $3,
-         certificaciones = $4,
-         formacion_no_formal = $5,
-         idiomas = $6,
-         habilidades_tecnicas = $7,
-         habilidades_blandas = $8
-       WHERE id = $9
+         titular = COALESCE($1, usuarios.titular),
+         telefono = COALESCE($2, usuarios.telefono),
+         correo_personal = COALESCE($3, usuarios.correo_personal),
+         ubicacion = COALESCE($4, usuarios.ubicacion),
+         links = CASE WHEN $5::jsonb != '[]'::jsonb AND (usuarios.links IS NULL OR jsonb_array_length(usuarios.links) = 0) THEN $5::jsonb ELSE COALESCE(usuarios.links, '[]'::jsonb) END,
+         resumen = $6,
+         experiencia = $7,
+         educacion_formal = $8,
+         certificaciones = $9,
+         formacion_no_formal = $10,
+         idiomas = $11,
+         habilidades_tecnicas = $12,
+         habilidades_blandas = $13
+       WHERE id = $14
        RETURNING *`,
       [
+        perfil.titular,
+        perfil.telefono,
+        perfil.correo_personal,
+        perfil.ubicacion,
+        JSON.stringify(perfil.links),
         perfil.resumen,
         JSON.stringify(perfil.experiencia),
         JSON.stringify(perfil.educacion_formal),

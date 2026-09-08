@@ -14,9 +14,12 @@ router.post('/chat', requireAuth, async (req, res) => {
   const { messages = [] } = req.body
 
   try {
-    // 1. Cargar perfil del usuario
+    // 1. Cargar perfil completo del usuario
     const { rows: [profile] } = await query(
-      `SELECT nombre, resumen, habilidades_tecnicas, experiencia, educacion_formal 
+      `SELECT nombre, titular, resumen, ubicacion, correo_personal, telefono, links,
+              experiencia, educacion_formal, formacion_no_formal, certificaciones,
+              idiomas, habilidades_tecnicas, habilidades_blandas,
+              referencias_laborales, referencias_personales
        FROM usuarios WHERE id = $1`,
       [req.user.id]
     )
@@ -52,12 +55,20 @@ router.post('/chat', requireAuth, async (req, res) => {
 
     // 5. Estructurar el contexto para el System Prompt del Coach Laboral
     const userContextText = `
-INFORMACIÓN CONTEXTUAL DEL CANDIDATO:
+INFORMACIÓN CONTEXTUAL INTEGRAL DEL CANDIDATO:
 - Nombre: ${profile?.nombre || 'Candidato'}
-- Resumen Profesional: ${profile?.resumen || 'No especificado'}
-- Habilidades Técnicas: ${JSON.stringify(profile?.habilidades_tecnicas || [])}
-- Experiencia Laboral: ${JSON.stringify(profile?.experiencia || [])}
+- Titular Profesional: ${profile?.titular || 'No especificado'}
+- Ubicación: ${profile?.ubicacion || 'Bogotá, Colombia'}
+- Resumen Maestro: ${profile?.resumen || 'No especificado'}
+- Enlaces y Redes: ${JSON.stringify(profile?.links || [])}
+- Historial Laboral Completo: ${JSON.stringify(profile?.experiencia || [])}
 - Educación Formal: ${JSON.stringify(profile?.educacion_formal || [])}
+- Formación No Formal (Diplomados / Minors / Cursos): ${JSON.stringify(profile?.formacion_no_formal || [])}
+- Certificaciones Oficiales y Licencias: ${JSON.stringify(profile?.certificaciones || [])}
+- Habilidades Técnicas y Herramientas: ${JSON.stringify(profile?.habilidades_tecnicas || [])}
+- Habilidades Blandas y Liderazgo: ${JSON.stringify(profile?.habilidades_blandas || [])}
+- Idiomas: ${JSON.stringify(profile?.idiomas || [])}
+- Referencias Laborales y Personales: ${JSON.stringify([...(profile?.referencias_laborales || []), ...(profile?.referencias_personales || [])])}
 
 PROCESOS DE POSTULACIÓN ACTIVOS/HISTÓRICOS (Total: ${applications.length}):
 ${applications.map((app, i) => `

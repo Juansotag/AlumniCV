@@ -117,32 +117,44 @@ DATOS DE LA VACANTE OBJETIVO:
 - Cargo / Rol: ${application.puesto}
 - Descripción / Requisitos: ${application.descripcion_corta || 'No especificada'}
 - Modalidad de trabajo: ${application.modalidad || 'Híbrida'}
+- Seniority: ${application.seniority || 'No especificado'}
 
 DATOS DEL CANDIDATO (PERFIL MAESTRO INTEGRAL):
 - Nombre completo: ${profile.nombre || 'Candidato UniSabana'}
+- Titular actual: ${profile.titular || 'Profesional'}
+- Ubicación: ${profile.ubicacion || 'Bogotá, Colombia'}
+- Teléfono: ${profile.telefono || 'No especificado'}
+- Correo institucional: ${profile.correo || 'No especificado'}
+- Correo personal: ${profile.correo_personal || 'No especificado'}
+- Enlaces y redes: ${JSON.stringify(profile.links || [])}
 - Resumen maestro: ${profile.resumen || ''}
 - Historial completo de experiencias laborales: ${JSON.stringify(profile.experiencia || [])}
-- Educación formal (Pregrados, Posgrados, etc.): ${JSON.stringify(profile.educacion_formal || [])}
-- Formación no formal (Diplomados, Minors, Cursos): ${JSON.stringify(profile.formacion_no_formal || [])}
-- Certificaciones profesionales: ${JSON.stringify(profile.certificaciones || [])}
+- Educación formal (Pregrados, Posgrados, Maestrías): ${JSON.stringify(profile.educacion_formal || [])}
+- Formación no formal (Diplomados, Minors, Cursos de especialización): ${JSON.stringify(profile.formacion_no_formal || [])}
+- Certificaciones profesionales y licencias: ${JSON.stringify(profile.certificaciones || [])}
 - Habilidades técnicas y herramientas categorizadas: ${JSON.stringify(profile.habilidades_tecnicas || [])}
 - Habilidades blandas y de liderazgo: ${JSON.stringify(profile.habilidades_blandas || [])}
-- Idiomas: ${JSON.stringify(profile.idiomas || [])}
+- Idiomas y niveles: ${JSON.stringify(profile.idiomas || [])}
+- Referencias laborales y personales: ${JSON.stringify([...(profile.referencias_laborales || []), ...(profile.referencias_personales || [])])}
 
-INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA:
-El Perfil Maestro del candidato es una base de datos exhaustiva. Tu rol como headhunter es CURAR estratégicamente la información para maximizar las probabilidades de entrevista para ${application.puesto} en ${application.empresa}:
-1. "resumen_adaptado": Redacta un perfil ejecutivo de 3 a 4 oraciones de altísimo impacto:
-   - Oración 1: Título profesional, trayectoria y núcleo de especialidad alineado a ${application.puesto}.
-   - Oración 2: Dominio técnico de las principales herramientas y metodologías demandadas por ${application.empresa}.
-   - Oración 3: Mayor factor de diferenciación o hito de impacto comprobado.
-2. "experiencia_adaptada": Selecciona y adapta las experiencias más relevantes del Perfil Maestro (conservando empresa, cargo y fechas de inicio y fin). Reescribe las descripciones en viñetas contundentes con metodología STAR (Situación, Tarea, Acción, Resultado con métricas y herramientas). Destaca los proyectos y responsabilidades de mayor afinidad con ${application.puesto}.
-3. "palabras_clave_destacadas": Lista de 5 a 8 palabras clave ATS estratégicas comunes entre el perfil del candidato y la vacante de ${application.puesto}.
-4. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elegante y persuasiva (3 a 4 párrafos completos que demuestren por qué el candidato es la opción ideal).
-5. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
+INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA ESTRATÉGICA:
+El Perfil Maestro del candidato es su inventario profesional completo. Tu rol como headhunter senior de clase mundial es CURAR y ADAPTAR estratégicamente la información para maximizar las probabilidades de entrevista para ${application.puesto} en ${application.empresa}:
+1. "titular_adaptado": Título profesional y de especialidad adaptado con máxima precisión a ${application.puesto}, combinando la formación y trayectoria del candidato.
+2. "resumen_adaptado": Redacta un perfil ejecutivo de 3 a 4 oraciones de altísimo impacto, sin clichés, resaltando el valor diferencial concreto que aporta a ${application.empresa}.
+3. "experiencia_adaptada": Selecciona y adapta las experiencias más relevantes del Perfil Maestro (conservando empresa, cargo, fechas y modalidad de trabajo si aplica). Reescribe las descripciones en viñetas contundentes con metodología STAR (Situación, Tarea, Acción, Resultado con métricas, herramientas y contexto).
+4. "habilidades_tecnicas_destacadas": Selecciona y ordena las 6 a 10 habilidades técnicas y herramientas del Perfil Maestro que mayor relevancia tienen para la vacante de ${application.puesto}.
+5. "habilidades_blandas_destacadas": Selecciona las 4 a 6 competencias conductuales y de liderazgo más pertinentes para el rol.
+6. "certificaciones_destacadas": Selecciona las certificaciones y licencias del candidato que respalden su idoneidad para el puesto.
+7. "formacion_no_formal_destacada": Selecciona los diplomados, minors y programas de especialización más afines al puesto.
+8. "idiomas_destacados": Lista de idiomas del candidato con su nivel.
+9. "palabras_clave_destacadas": Lista de 6 a 10 palabras clave ATS estratégicas coincidentes entre el perfil y la vacante.
+10. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elocuente, persuasiva y formal (3 a 4 párrafos que expongan logros concretos y afinidad de propósito).
+11. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
 
 Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
 {
   "cv": {
+    "titular_adaptado": "string",
     "resumen_adaptado": "string",
     "experiencia_adaptada": [
       {
@@ -150,7 +162,31 @@ Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:
         "cargo": "string",
         "desde": "string",
         "hasta": "string",
+        "modalidad": "string o null",
         "descripcion": "string"
+      }
+    ],
+    "habilidades_tecnicas_destacadas": ["string"],
+    "habilidades_blandas_destacadas": ["string"],
+    "certificaciones_destacadas": [
+      {
+        "nombre": "string",
+        "entidad_emisora": "string o null",
+        "anio": "string o null"
+      }
+    ],
+    "formacion_no_formal_destacada": [
+      {
+        "nombre": "string",
+        "tipo": "string o null",
+        "institucion": "string o null",
+        "anio": "string o null"
+      }
+    ],
+    "idiomas_destacados": [
+      {
+        "idioma": "string",
+        "nivel": "string"
       }
     ],
     "palabras_clave_destacadas": ["string"]

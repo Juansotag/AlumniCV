@@ -10,10 +10,377 @@ import {
 
 /**
  * Genera un buffer de archivo .docx con el formato ejecutivo oficial de GovLab / UniSabana,
- * replicando exactamente la estructura tipográfica, márgenes y líneas divisorias
- * de la hoja de vida ejecutiva (ej. Juan Diego Sotelo Aguilar).
+ * integrando el 100% de los campos del Perfil Maestro (titular adaptado, datos de contacto,
+ * modalidad laboral, educación formal, certificaciones, diplomados, habilidades curadas e idiomas).
  */
 export async function generateCvDocx(profile, applicationData, llmCvContent) {
+  const safeLlmCv = llmCvContent && typeof llmCvContent === 'object' ? llmCvContent : {}
+  const candidateName = profile.nombre || 'Candidato UniSabana'
+  const headline = safeLlmCv.titular_adaptado || profile.titular || applicationData.puesto || 'Profesional Especialista'
+
+  // Lista de experiencias
+  const exps = Array.isArray(safeLlmCv.experiencia_adaptada) && safeLlmCv.experiencia_adaptada.length > 0
+    ? safeLlmCv.experiencia_adaptada
+    : (Array.isArray(profile.experiencia) ? profile.experiencia : [])
+
+  // Lista de certificaciones
+  const certs = Array.isArray(safeLlmCv.certificaciones_destacadas) && safeLlmCv.certificaciones_destacadas.length > 0
+    ? safeLlmCv.certificaciones_destacadas
+    : (Array.isArray(profile.certificaciones) ? profile.certificaciones : [])
+
+  // Lista de formación no formal / diplomados
+  const nonFormal = Array.isArray(safeLlmCv.formacion_no_formal_destacada) && safeLlmCv.formacion_no_formal_destacada.length > 0
+    ? safeLlmCv.formacion_no_formal_destacada
+    : (Array.isArray(profile.formacion_no_formal) ? profile.formacion_no_formal : [])
+
+  // Idiomas
+  const idiomas = Array.isArray(safeLlmCv.idiomas_destacados) && safeLlmCv.idiomas_destacados.length > 0
+    ? safeLlmCv.idiomas_destacados
+    : (Array.isArray(profile.idiomas) ? profile.idiomas : [])
+
+  // Habilidades técnicas curadas
+  const rawTech = Array.isArray(safeLlmCv.habilidades_tecnicas_destacadas) && safeLlmCv.habilidades_tecnicas_destacadas.length > 0
+    ? safeLlmCv.habilidades_tecnicas_destacadas
+    : (Array.isArray(profile.habilidades_tecnicas) ? profile.habilidades_tecnicas : [])
+  const techSkillsText = rawTech
+    .map(h => typeof h === 'string' ? h : (h?.nombre || h?.habilidad || ''))
+    .filter(Boolean)
+    .join(', ')
+
+  // Habilidades blandas curadas
+  const rawSoft = Array.isArray(safeLlmCv.habilidades_blandas_destacadas) && safeLlmCv.habilidades_blandas_destacadas.length > 0
+    ? safeLlmCv.habilidades_blandas_destacadas
+    : (Array.isArray(profile.habilidades_blandas) ? profile.habilidades_blandas : [])
+  const softSkillsText = rawSoft
+    .map(h => typeof h === 'string' ? h : (h?.nombre || String(h || '')))
+    .filter(Boolean)
+    .join(', ')
+
+  const docChildren = [
+    // ── 1. Nombre Completo ─────────────────────────────────────
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: candidateName,
+          bold: true,
+          size: 32, // 16pt
+          font: 'Arial',
+          color: '00135B'
+        })
+      ],
+      spacing: { after: 60 }
+    }),
+
+    // ── Subtítulo de Posición / Titular Adaptado ───────────────
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: headline,
+          bold: true,
+          size: 24, // 12pt
+          font: 'Arial',
+          color: '374151'
+        })
+      ],
+      spacing: { after: 100 }
+    }),
+
+    // ── Línea de Contacto Dinámica y Unificada ─────────────────
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: (() => {
+        const items = []
+        items.push(new TextRun({ text: profile.ubicacion || 'Bogotá, Colombia', size: 19, font: 'Arial', color: '475569' }))
+
+        if (profile.telefono) {
+          items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+          items.push(new TextRun({ text: profile.telefono, size: 19, font: 'Arial', color: '475569' }))
+        }
+
+        const emails = [profile.correo, profile.correo_personal].filter(Boolean)
+        if (emails.length > 0) {
+          items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+          items.push(new TextRun({ text: emails.join(' / '), size: 19, font: 'Arial', color: '475569' }))
+        }
+
+        const linksList = Array.isArray(profile.links)
+          ? profile.links
+          : (profile.links && typeof profile.links === 'object'
+              ? Object.entries(profile.links).map(([k, v]) => ({ red: k, url: v }))
+              : [])
+
+        for (const l of linksList) {
+          if (l && (l.url || typeof l === 'string')) {
+            const urlVal = l.url || l
+            const label = l.red || 'Enlace Profesional'
+            items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
+            items.push(new TextRun({ text: label, size: 19, font: 'Arial', color: '00387D', underline: {} }))
+          }
+        }
+        return items
+      })(),
+      spacing: { after: 240 }
+    }),
+
+    // ── 2. PERFIL PROFESIONAL ──────────────────────────────────
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'P E R F I L   P R O F E S I O N A L',
+          bold: true,
+          size: 21,
+          font: 'Arial',
+          color: '00135B'
+        })
+      ],
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+      spacing: { before: 180, after: 120 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: safeLlmCv.resumen_adaptado || profile.resumen || '',
+          size: 20,
+          font: 'Arial',
+          color: '1F2937'
+        })
+      ],
+      spacing: { after: 240 }
+    }),
+
+    // ── 3. EXPERIENCIA PROFESIONAL ─────────────────────────────
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'E X P E R I E N C I A   P R O F E S I O N A L',
+          bold: true,
+          size: 21,
+          font: 'Arial',
+          color: '00135B'
+        })
+      ],
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+      spacing: { before: 200, after: 120 }
+    }),
+    ...exps.map(exp => {
+      const rawBullets = Array.isArray(exp.descripcion)
+        ? exp.descripcion
+        : (Array.isArray(exp.logros)
+            ? exp.logros
+            : String(exp.descripcion || exp.logros || '').split('\n'))
+
+      const modalidadTag = exp.modalidad ? `  [${exp.modalidad}]` : ''
+
+      return [
+        new Paragraph({
+          children: [
+            new TextRun({ text: exp.cargo || 'Cargo Profesional', bold: true, size: 21, font: 'Arial', color: '00135B' }),
+            new TextRun({ text: `  |  ${exp.empresa || 'Empresa'}${modalidadTag}`, bold: true, size: 21, font: 'Arial', color: '475569' }),
+            new TextRun({ text: `\t${exp.desde || '2022'} a ${exp.hasta || 'Presente'}`, italic: true, size: 19, font: 'Arial', color: '64748B' })
+          ],
+          spacing: { before: 120, after: 60 }
+        }),
+        ...rawBullets.filter(Boolean).map(bullet => (
+          new Paragraph({
+            bullet: { level: 0 },
+            children: [
+              new TextRun({ text: String(bullet).replace(/^[•\-*]\s*/, ''), size: 19, font: 'Arial', color: '374151' })
+            ],
+            spacing: { after: 40 }
+          })
+        ))
+      ]
+    }).flat(),
+
+    // ── 4. EDUCACIÓN FORMAL ────────────────────────────────────
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'E D U C A C I Ó N   F O R M A L',
+          bold: true,
+          size: 21,
+          font: 'Arial',
+          color: '00135B'
+        })
+      ],
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+      spacing: { before: 240, after: 120 }
+    }),
+    ...(profile.educacion_formal || []).map(edu => {
+      const datesText = edu.desde && edu.hasta ? `${edu.desde} a ${edu.hasta}` : (edu.anio ? `${edu.anio}` : (edu.hasta || ''))
+      return new Paragraph({
+        children: [
+          new TextRun({ text: edu.titulo || 'Grado Académico', bold: true, size: 21, font: 'Arial', color: '1F2937' }),
+          new TextRun({ text: `  |  ${edu.institucion || 'Institución Universitaria'}`, size: 20, font: 'Arial', color: '475569' }),
+          ...(datesText ? [new TextRun({ text: `\t${datesText}`, italic: true, size: 19, font: 'Arial', color: '64748B' })] : [])
+        ],
+        spacing: { after: 80 }
+      })
+    })
+  ]
+
+  // ── 5. CERTIFICACIONES PROFESIONALES (Si existen) ────────────
+  if (certs.length > 0) {
+    docChildren.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'C E R T I F I C A C I O N E S   Y   L I C E N C I A S',
+            bold: true,
+            size: 21,
+            font: 'Arial',
+            color: '00135B'
+          })
+        ],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+        spacing: { before: 240, after: 120 }
+      }),
+      ...certs.map(cert => {
+        const certName = typeof cert === 'string' ? cert : (cert.nombre || 'Certificación Oficial')
+        const certIssuer = cert.entidad_emisora ? `  |  ${cert.entidad_emisora}` : ''
+        const certYear = cert.anio || cert.fecha_emision ? `\t${cert.anio || cert.fecha_emision}` : ''
+        return new Paragraph({
+          children: [
+            new TextRun({ text: certName, bold: true, size: 20, font: 'Arial', color: '1F2937' }),
+            ...(certIssuer ? [new TextRun({ text: certIssuer, size: 19, font: 'Arial', color: '475569' })] : []),
+            ...(certYear ? [new TextRun({ text: certYear, italic: true, size: 19, font: 'Arial', color: '64748B' })] : [])
+          ],
+          spacing: { after: 60 }
+        })
+      })
+    )
+  }
+
+  // ── 6. DIPLOMADOS Y FORMACIÓN CONTINUA (Si existen) ─────────
+  if (nonFormal.length > 0) {
+    docChildren.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'D I P L O M A D O S   Y   F O R M A C I Ó N   C O N T I N U A',
+            bold: true,
+            size: 21,
+            font: 'Arial',
+            color: '00135B'
+          })
+        ],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+        spacing: { before: 240, after: 120 }
+      }),
+      ...nonFormal.map(prog => {
+        const progName = typeof prog === 'string' ? prog : (prog.nombre || 'Diplomado / Programa')
+        const progInst = prog.institucion ? `  |  ${prog.institucion}` : ''
+        const progYear = prog.anio || prog.fecha ? `\t${prog.anio || prog.fecha}` : ''
+        return new Paragraph({
+          children: [
+            new TextRun({ text: progName, bold: true, size: 20, font: 'Arial', color: '1F2937' }),
+            ...(progInst ? [new TextRun({ text: progInst, size: 19, font: 'Arial', color: '475569' })] : []),
+            ...(progYear ? [new TextRun({ text: progYear, italic: true, size: 19, font: 'Arial', color: '64748B' })] : [])
+          ],
+          spacing: { after: 60 }
+        })
+      })
+    )
+  }
+
+  // ── 7. COMPETENCIAS Y HABILIDADES CURADAS ───────────────────
+  if (techSkillsText || softSkillsText) {
+    const skillParagraphs = [
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'C O M P E T E N C I A S   Y   H A B I L I D A D E S',
+            bold: true,
+            size: 21,
+            font: 'Arial',
+            color: '00135B'
+          })
+        ],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+        spacing: { before: 240, after: 120 }
+      })
+    ]
+
+    if (techSkillsText) {
+      skillParagraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Habilidades Técnicas y de Especialidad: ', bold: true, size: 20, font: 'Arial', color: '00135B' }),
+            new TextRun({
+              text: techSkillsText,
+              size: 20,
+              font: 'Arial',
+              color: '374151'
+            })
+          ],
+          spacing: { after: 60 }
+        })
+      )
+    }
+
+    if (softSkillsText) {
+      skillParagraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Competencias de Liderazgo y Conductuales: ', bold: true, size: 20, font: 'Arial', color: '00135B' }),
+            new TextRun({
+              text: softSkillsText,
+              size: 20,
+              font: 'Arial',
+              color: '374151'
+            })
+          ],
+          spacing: { after: 120 }
+        })
+      )
+    }
+
+    docChildren.push(...skillParagraphs)
+  }
+
+  // ── 8. IDIOMAS (Si existen) ─────────────────────────────────
+  if (idiomas.length > 0) {
+    const idiomasText = idiomas
+      .map(lang => {
+        if (typeof lang === 'string') return lang
+        const nivel = lang.nivel_mcer || lang.nivel || ''
+        return nivel ? `${lang.idioma} (${nivel})` : lang.idioma
+      })
+      .filter(Boolean)
+      .join('  •  ')
+
+    if (idiomasText) {
+      docChildren.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'I D I O M A S',
+              bold: true,
+              size: 21,
+              font: 'Arial',
+              color: '00135B'
+            })
+          ],
+          border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
+          spacing: { before: 240, after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: idiomasText,
+              size: 20,
+              font: 'Arial',
+              color: '374151'
+            })
+          ],
+          spacing: { after: 200 }
+        })
+      )
+    }
+  }
+
   const doc = new Document({
     sections: [
       {
@@ -27,211 +394,7 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
             }
           }
         },
-        children: [
-          // ── 1. Nombre Completo ─────────────────────────────────────
-          new Paragraph({
-            alignment: AlignmentType.LEFT,
-            children: [
-              new TextRun({
-                text: profile.nombre || 'Juan Diego Sotelo Aguilar',
-                bold: true,
-                size: 32, // 16pt
-                font: 'Arial',
-                color: '00135B'
-              })
-            ],
-            spacing: { after: 60 }
-          }),
-
-          // ── Subtítulo de Posición ──────────────────────────────────
-          new Paragraph({
-            alignment: AlignmentType.LEFT,
-            children: [
-              new TextRun({
-                text: applicationData.puesto || profile.resumen?.split('.')[0] || 'Profesional / Especialista',
-                bold: true,
-                size: 24, // 12pt
-                font: 'Arial',
-                color: '374151'
-              })
-            ],
-            spacing: { after: 100 }
-          }),
-
-          // ── Línea de Contacto Dinámica y Unificada ───────────────
-          new Paragraph({
-            alignment: AlignmentType.LEFT,
-            children: (() => {
-              const items = []
-              items.push(new TextRun({ text: profile.ubicacion || 'Bogotá / Cundinamarca, Colombia', size: 19, font: 'Arial', color: '475569' }))
-
-              if (profile.telefono) {
-                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
-                items.push(new TextRun({ text: profile.telefono, size: 19, font: 'Arial', color: '475569' }))
-              }
-
-              const emails = [profile.correo, profile.correo_personal].filter(Boolean)
-              if (emails.length > 0) {
-                items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
-                items.push(new TextRun({ text: emails.join(' / '), size: 19, font: 'Arial', color: '475569' }))
-              }
-
-              const linksList = Array.isArray(profile.links)
-                ? profile.links
-                : (profile.links && typeof profile.links === 'object'
-                    ? Object.entries(profile.links).map(([k, v]) => ({ red: k, url: v }))
-                    : [])
-
-              for (const l of linksList) {
-                if (l && l.url) {
-                  const label = l.red || 'Enlace'
-                  items.push(new TextRun({ text: '  |  ', bold: true, size: 19, font: 'Arial', color: '00135B' }))
-                  items.push(new TextRun({ text: label, size: 19, font: 'Arial', color: '00387D', underline: {} }))
-                }
-              }
-              return items
-            })(),
-            spacing: { after: 240 }
-          }),
-
-          // ── 2. PERFIL PROFESIONAL ──────────────────────────────────
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: 'P E R F I L   P R O F E S I O N A L',
-                bold: true,
-                size: 21,
-                font: 'Arial',
-                color: '00135B'
-              })
-            ],
-            border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
-            spacing: { before: 180, after: 120 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: llmCvContent.resumen_adaptado || profile.resumen || '',
-                size: 20,
-                font: 'Arial',
-                color: '1F2937'
-              })
-            ],
-            spacing: { after: 240 }
-          }),
-
-          // ── 3. EXPERIENCIA PROFESIONAL ─────────────────────────────
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: 'E X P E R I E N C I A   P R O F E S I O N A L',
-                bold: true,
-                size: 21,
-                font: 'Arial',
-                color: '00135B'
-              })
-            ],
-            border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
-            spacing: { before: 200, after: 120 }
-          }),
-          ...(llmCvContent.experiencia_adaptada || profile.experiencia || []).map(exp => {
-            const rawBullets = Array.isArray(exp.descripcion)
-              ? exp.descripcion
-              : (Array.isArray(exp.logros)
-                  ? exp.logros
-                  : String(exp.descripcion || exp.logros || '').split('\n'))
-
-            return [
-              new Paragraph({
-                children: [
-                  new TextRun({ text: exp.cargo || 'Cargo Profesional', bold: true, size: 21, font: 'Arial', color: '00135B' }),
-                  new TextRun({ text: `  |  ${exp.empresa || 'Empresa'}`, bold: true, size: 21, font: 'Arial', color: '475569' }),
-                  new TextRun({ text: `\t${exp.desde || '2023'} a ${exp.hasta || 'Presente'}`, italic: true, size: 19, font: 'Arial', color: '64748B' })
-                ],
-                spacing: { before: 100, after: 60 }
-              }),
-              ...rawBullets.filter(Boolean).map(bullet => (
-                new Paragraph({
-                  bullet: { level: 0 },
-                  children: [
-                    new TextRun({ text: String(bullet).replace(/^[•\-*]\s*/, ''), size: 19, font: 'Arial', color: '374151' })
-                  ],
-                  spacing: { after: 40 }
-                })
-              ))
-            ]
-          }).flat(),
-
-          // ── 4. EDUCACIÓN ───────────────────────────────────────────
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: 'E D U C A C I Ó N',
-                bold: true,
-                size: 21,
-                font: 'Arial',
-                color: '00135B'
-              })
-            ],
-            border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
-            spacing: { before: 240, after: 120 }
-          }),
-          ...(profile.educacion_formal || []).map(edu => (
-            new Paragraph({
-              children: [
-                new TextRun({ text: edu.titulo || 'Grado Académico', bold: true, size: 21, font: 'Arial', color: '1F2937' }),
-                new TextRun({ text: `  |  ${edu.institucion || 'Universidad de La Sabana'}`, size: 20, font: 'Arial', color: '475569' }),
-                new TextRun({ text: `\t${edu.desde || ''} a ${edu.hasta || '2024'}`, italic: true, size: 19, font: 'Arial', color: '64748B' })
-              ],
-              spacing: { after: 80 }
-            })
-          )),
-
-          // ── 5. HABILIDADES TÉCNICAS ─────────────────────────────────
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: 'H A B I L I D A D E S   T É C N I C A S',
-                bold: true,
-                size: 21,
-                font: 'Arial',
-                color: '00135B'
-              })
-            ],
-            border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '00135B' } },
-            spacing: { before: 240, after: 120 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Habilidades Principales: ', bold: true, size: 20, font: 'Arial', color: '00135B' }),
-              new TextRun({
-                text: ((profile.habilidades_tecnicas || [])
-                  .map(h => typeof h === 'string' ? h : (h?.nombre || h?.habilidad || ''))
-                  .filter(Boolean)
-                  .join(', ') || 'Python, SQL, Power BI, Analítica de Datos'),
-                size: 20,
-                font: 'Arial',
-                color: '374151'
-              })
-            ],
-            spacing: { after: 60 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Habilidades Blandas: ', bold: true, size: 20, font: 'Arial', color: '00135B' }),
-              new TextRun({
-                text: ((profile.habilidades_blandas || [])
-                  .map(h => typeof h === 'string' ? h : (h?.nombre || String(h || '')))
-                  .filter(Boolean)
-                  .join(', ') || 'Liderazgo, Resolución de Problemas, Comunicación Ejecutiva'),
-                size: 20,
-                font: 'Arial',
-                color: '374151'
-              })
-            ],
-            spacing: { after: 200 }
-          })
-        ]
+        children: docChildren
       }
     ]
   })
@@ -261,14 +424,19 @@ export async function generateCoverLetterDocx(profile, applicationData, coverLet
           }),
           new Paragraph({
             children: [
-              new TextRun({ text: `${profile.correo || ''}  |  ${fechaHoy}`, size: 19, font: 'Arial', color: '64748B' })
+              new TextRun({
+                text: `${[profile.ubicacion, profile.telefono, profile.correo || profile.correo_personal].filter(Boolean).join('  |  ')}  |  ${fechaHoy}`,
+                size: 19,
+                font: 'Arial',
+                color: '64748B'
+              })
             ],
             spacing: { after: 240 }
           }),
 
           new Paragraph({
             children: [
-              new TextRun({ text: 'Atención: Equipo de Selección de Personal', bold: true, size: 21, font: 'Arial', color: '1F2937' }),
+              new TextRun({ text: 'Atención: Equipo de Selección de Talento Humano', bold: true, size: 21, font: 'Arial', color: '1F2937' }),
             ]
           }),
           new Paragraph({

@@ -54,7 +54,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     // 1. Perfil del usuario para scoring %
     const { rows: [userProfile] } = await query(
-      `SELECT habilidades_tecnicas, experiencia, educacion_formal FROM usuarios WHERE id = $1`,
+      `SELECT titular, habilidades_tecnicas, habilidades_blandas, experiencia, educacion_formal, formacion_no_formal, certificaciones, idiomas FROM usuarios WHERE id = $1`,
       [req.user.id]
     )
 
@@ -193,7 +193,7 @@ router.post('/import-by-id', requireAuth, async (req, res) => {
 
     // 3. Obtener perfil de usuario para cálculo de afinidad
     const { rows: [userProfile] } = await query(
-      `SELECT habilidades_tecnicas, experiencia, educacion_formal FROM usuarios WHERE id = $1`,
+      `SELECT titular, habilidades_tecnicas, habilidades_blandas, experiencia, educacion_formal, formacion_no_formal, certificaciones, idiomas FROM usuarios WHERE id = $1`,
       [req.user.id]
     )
 

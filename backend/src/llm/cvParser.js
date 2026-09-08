@@ -9,6 +9,16 @@ PROHIBIDO CONDENSAR O RESUMIR: No sintetices las viñetas ni recortes logros. Si
 Devuelve ÚNICAMENTE un objeto JSON válido (sin formato markdown adicional) con este esquema exacto:
 
 {
+  "titular": "Título profesional o área de especialidad (ej. Psicóloga Especialista en ESG, Ingeniero de Datos, etc.) o null",
+  "telefono": "Teléfono de contacto con indicativo si aparece, o null",
+  "correo_personal": "Correo electrónico personal si aparece en el encabezado, o null",
+  "ubicacion": "Ciudad, País de residencia o null",
+  "links": [
+    {
+      "red": "LinkedIn" | "Portafolio" | "GitHub" | "otro",
+      "url": "https://..."
+    }
+  ],
   "resumen": "Resumen o perfil profesional completo del candidato (conservando tono y amplitud original)",
   "experiencia": [
     {

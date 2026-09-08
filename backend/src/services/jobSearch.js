@@ -500,39 +500,85 @@ export async function searchLinkedInJobs({
 export function calculateCompatibility(job, userProfile) {
   if (!userProfile) return 72.5
 
-  const jobText = `${job.puesto} ${job.descripcion_corta}`.toLowerCase()
-  let score = 42.0
+  const jobText = `${job.puesto || ''} ${job.descripcion_corta || ''}`.toLowerCase()
+  let score = 38.0
 
-  // 1. Coincidencias en habilidades técnicas (hasta +30 puntos con pesos variados)
+  // 1. Coincidencias en Titular Profesional (hasta +12 puntos)
+  if (userProfile.titular) {
+    const titularWords = userProfile.titular.toLowerCase().split(/[\s|,/-]+/).filter(w => w.length > 3)
+    titularWords.forEach(w => {
+      if (jobText.includes(w)) score += 3.0
+    })
+  }
+
+  // 2. Coincidencias en habilidades técnicas y de especialidad (hasta +25 puntos)
   const habs = userProfile.habilidades_tecnicas || []
   let habMatches = 0
   habs.forEach((h, index) => {
-    if (h.nombre && jobText.includes(h.nombre.toLowerCase())) {
-      habMatches += (index < 3 ? 7.5 : 4.0) // Las 3 habilidades principales pesan más
+    const hName = typeof h === 'string' ? h : (h?.nombre || '')
+    if (hName && jobText.includes(hName.toLowerCase())) {
+      habMatches += (index < 3 ? 6.0 : 3.5)
     }
   })
-  score += Math.min(habMatches, 30.0)
+  score += Math.min(habMatches, 25.0)
 
-  // 2. Coincidencias en cargo / experiencia laboral (hasta +25 puntos)
-  const exps = userProfile.experiencia || []
-  exps.forEach(exp => {
-    if (exp.cargo) {
-      const cargoWords = exp.cargo.toLowerCase().split(' ').filter(w => w.length > 3)
-      cargoWords.forEach(w => {
-        if (jobText.includes(w)) score += 4.5
+  // 3. Coincidencias en certificaciones y licencias (hasta +15 puntos)
+  const certs = userProfile.certificaciones || []
+  let certMatches = 0
+  certs.forEach(c => {
+    const cName = typeof c === 'string' ? c : (c?.nombre || '')
+    if (cName) {
+      const cWords = cName.toLowerCase().split(/[\s|,/-]+/).filter(w => w.length > 2)
+      cWords.forEach(w => {
+        if (jobText.includes(w)) certMatches += 4.0
       })
     }
   })
+  score += Math.min(certMatches, 15.0)
 
-  // 3. Coincidencia en educación y área de conocimiento (hasta +15 puntos)
+  // 4. Coincidencias en formación no formal / diplomados (hasta +10 puntos)
+  const nonFormal = userProfile.formacion_no_formal || []
+  let nonFormalMatches = 0
+  nonFormal.forEach(p => {
+    const pName = typeof p === 'string' ? p : (p?.nombre || '')
+    if (pName) {
+      const pWords = pName.toLowerCase().split(/[\s|,/-]+/).filter(w => w.length > 3)
+      pWords.forEach(w => {
+        if (jobText.includes(w)) nonFormalMatches += 3.0
+      })
+    }
+  })
+  score += Math.min(nonFormalMatches, 10.0)
+
+  // 5. Coincidencias en cargo / experiencia laboral (hasta +20 puntos)
+  const exps = userProfile.experiencia || []
+  let expMatches = 0
+  exps.forEach(exp => {
+    if (exp.cargo) {
+      const cargoWords = exp.cargo.toLowerCase().split(/[\s|,/-]+/).filter(w => w.length > 3)
+      cargoWords.forEach(w => {
+        if (jobText.includes(w)) expMatches += 3.5
+      })
+    }
+  })
+  score += Math.min(expMatches, 20.0)
+
+  // 6. Coincidencia en educación formal (hasta +12 puntos)
   const edus = userProfile.educacion_formal || []
   edus.forEach(edu => {
-    if (edu.titulo && jobText.includes(edu.titulo.toLowerCase())) score += 10.0
+    if (edu.titulo && jobText.includes(edu.titulo.toLowerCase())) score += 8.0
   })
 
-  // 4. Variación determinista según hash de Job ID para evitar puntajes idénticos planos
+  // 7. Idiomas (hasta +6 puntos)
+  const idiomas = userProfile.idiomas || []
+  idiomas.forEach(lang => {
+    const langName = typeof lang === 'string' ? lang : (lang?.idioma || '')
+    if (langName && jobText.includes(langName.toLowerCase())) score += 3.0
+  })
+
+  // 8. Variación determinista según hash de Job ID para evitar puntajes idénticos planos
   const idHash = (job.job_id || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  const salt = (idHash % 13) - 6 // Variación de -6 a +6 %
+  const salt = (idHash % 11) - 5 // Variación de -5 a +5 %
 
   const finalScore = Math.min(Math.max(score + salt, 45.0), 98.5)
   return Math.round(finalScore * 10) / 10
