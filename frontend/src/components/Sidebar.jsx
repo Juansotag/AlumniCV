@@ -1,9 +1,8 @@
-import { Search, ListChecks, FileStack, Info, MessageSquare, UserCheck } from 'lucide-react'
+import { Search, ListChecks, FileStack, Info, MessageSquare } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 
 const NAV_ITEMS = [
-  { path: '/profile', label: 'Mi Perfil Maestro', icon: UserCheck },
   { path: '/dashboard/nueva-busqueda', label: 'Nueva búsqueda', icon: Search },
   { path: '/dashboard/mis-procesos', label: 'Mis procesos', icon: ListChecks },
   { path: '/dashboard/mis-documentos', label: 'Mis documentos', icon: FileStack },

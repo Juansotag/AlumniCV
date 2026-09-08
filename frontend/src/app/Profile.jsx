@@ -86,6 +86,66 @@ export default function Profile() {
     return '$ ' + num.toLocaleString('es-CO')
   }
 
+  // Helper para formatear número de teléfono (Colombia e internacional)
+  const formatPhoneInput = (val) => {
+    if (!val) return ''
+    const str = String(val)
+    if (/[a-zA-Z]/.test(str)) return str
+
+    const hasPlus = str.trim().startsWith('+')
+    const digits = str.replace(/[^\d]/g, '')
+    if (!digits) return hasPlus ? '+' : ''
+
+    // Caso Colombia con prefijo 57: '573101234567' -> '+57 310 123 4567'
+    if (digits.startsWith('57')) {
+      const rest = digits.slice(2)
+      let out = '+57'
+      if (rest.length > 0) out += ' ' + rest.slice(0, 3)
+      if (rest.length > 3) out += ' ' + rest.slice(3, 6)
+      if (rest.length > 6) out += ' ' + rest.slice(6, 10)
+      return out
+    }
+
+    // Caso celular Colombia (10 dígitos empezando con 3): '3101234567' -> '+57 310 123 4567'
+    if (!hasPlus && digits.startsWith('3') && digits.length <= 10) {
+      let out = '+57 ' + digits.slice(0, 3)
+      if (digits.length > 3) out += ' ' + digits.slice(3, 6)
+      if (digits.length > 6) out += ' ' + digits.slice(6, 10)
+      return out
+    }
+
+    // Caso internacional con '+'
+    if (hasPlus) {
+      if (digits.length <= 2) return `+${digits}`
+      if (digits.length <= 5) return `+${digits.slice(0, 2)} ${digits.slice(2)}`
+      if (digits.length <= 8) return `+${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`
+      return `+${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 12)}`
+    }
+
+    // Teléfono general nacional
+    if (digits.length <= 7) {
+      return digits.length > 3 ? `${digits.slice(0, 3)} ${digits.slice(3)}` : digits
+    }
+    let out = digits.slice(0, 3) + ' ' + digits.slice(3, 6)
+    if (digits.length > 6) out += ' ' + digits.slice(6, 10)
+    return out
+  }
+
+  // Helper para formatear fecha mes-año YYYY-MM
+  const formatYearMonth = (val) => {
+    if (!val) return ''
+    const digits = String(val).replace(/[^\d]/g, '')
+    if (!digits) return ''
+    if (digits.length <= 4) return digits
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}`
+  }
+
+  // Helper para formatear año de 4 dígitos YYYY
+  const formatYear = (val) => {
+    if (!val) return ''
+    return String(val).replace(/[^\d]/g, '').slice(0, 4)
+  }
+
   // Inputs para agregar habilidades rápidamente
   const [newSkillText, setNewSkillText] = useState({
     software: '',
@@ -438,6 +498,13 @@ export default function Profile() {
     setLinks(prev => ({ ...prev, [key]: value }))
   }
 
+  const normalizeUrlOnBlur = (key) => {
+    const val = links[key]?.trim()
+    if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
+      updateLink(key, `https://${val}`)
+    }
+  }
+
   const assessment = profile?.ultimo_assessment
 
   return (
@@ -529,8 +596,9 @@ export default function Profile() {
                 </label>
                 <input
                   type="tel"
+                  inputMode="tel"
                   value={telefono}
-                  onChange={e => setTelefono(e.target.value)}
+                  onChange={e => setTelefono(formatPhoneInput(e.target.value))}
                   placeholder="+57 310 123 4567"
                 />
               </div>
@@ -797,8 +865,9 @@ export default function Profile() {
                         <label>Fecha Inicio (YYYY-MM)</label>
                         <input
                           type="text"
+                          maxLength={7}
                           value={exp.desde || ''}
-                          onChange={e => updateExperiencia(idx, 'desde', e.target.value)}
+                          onChange={e => updateExperiencia(idx, 'desde', formatYearMonth(e.target.value))}
                           placeholder="2021-03"
                         />
                       </div>
@@ -806,9 +875,10 @@ export default function Profile() {
                         <label>Fecha Fin (o vacío si actual)</label>
                         <input
                           type="text"
+                          maxLength={7}
                           disabled={exp.es_actual}
                           value={exp.es_actual ? '' : (exp.hasta || '')}
-                          onChange={e => updateExperiencia(idx, 'hasta', e.target.value)}
+                          onChange={e => updateExperiencia(idx, 'hasta', formatYearMonth(e.target.value))}
                           placeholder={exp.es_actual ? 'Presente' : '2023-10'}
                         />
                       </div>
@@ -1075,11 +1145,13 @@ export default function Profile() {
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                         <div className="form-group">
-                          <label>Año Inicio</label>
+                          <label>Año Inicio (YYYY)</label>
                           <input
                             type="text"
+                            maxLength={4}
+                            inputMode="numeric"
                             value={edu.desde || ''}
-                            onChange={e => updateEducacionFormal(idx, 'desde', e.target.value)}
+                            onChange={e => updateEducacionFormal(idx, 'desde', formatYear(e.target.value))}
                             placeholder="2018"
                           />
                         </div>
@@ -1087,8 +1159,10 @@ export default function Profile() {
                           <label>Año Fin (o vacío si en curso)</label>
                           <input
                             type="text"
+                            maxLength={4}
+                            inputMode="numeric"
                             value={edu.hasta || ''}
-                            onChange={e => updateEducacionFormal(idx, 'hasta', e.target.value)}
+                            onChange={e => updateEducacionFormal(idx, 'hasta', formatYear(e.target.value))}
                             placeholder="2023"
                           />
                         </div>
@@ -1472,21 +1546,23 @@ export default function Profile() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                       <div className="form-group">
-                        <label>Fecha de Expedición</label>
+                        <label>Fecha de Expedición (YYYY-MM)</label>
                         <input
                           type="text"
+                          maxLength={7}
                           value={cert.fecha_emision || ''}
-                          onChange={e => updateCertificacion(idx, 'fecha_emision', e.target.value)}
+                          onChange={e => updateCertificacion(idx, 'fecha_emision', formatYearMonth(e.target.value))}
                           placeholder="2023-05"
                         />
                       </div>
                       <div className="form-group">
-                        <label>Fecha de Expiración</label>
+                        <label>Fecha de Expiración (YYYY-MM)</label>
                         <input
                           type="text"
+                          maxLength={7}
                           disabled={cert.no_vence}
                           value={cert.no_vence ? '' : (cert.fecha_vencimiento || '')}
-                          onChange={e => updateCertificacion(idx, 'fecha_vencimiento', e.target.value)}
+                          onChange={e => updateCertificacion(idx, 'fecha_vencimiento', formatYearMonth(e.target.value))}
                           placeholder={cert.no_vence ? 'No vence' : '2026-05'}
                         />
                       </div>
@@ -1541,6 +1617,7 @@ export default function Profile() {
                       type="url"
                       value={links.linkedin || ''}
                       onChange={e => updateLink('linkedin', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('linkedin')}
                       placeholder="https://linkedin.com/in/usuario"
                     />
                   </div>
@@ -1558,6 +1635,7 @@ export default function Profile() {
                       type="url"
                       value={links.github || ''}
                       onChange={e => updateLink('github', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('github')}
                       placeholder="https://github.com/usuario"
                     />
                   </div>
@@ -1575,6 +1653,7 @@ export default function Profile() {
                       type="url"
                       value={links.portafolio || ''}
                       onChange={e => updateLink('portafolio', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('portafolio')}
                       placeholder="https://miportafolio.com o https://be.net/usuario"
                     />
                   </div>
@@ -1592,6 +1671,7 @@ export default function Profile() {
                       type="url"
                       value={links.web || ''}
                       onChange={e => updateLink('web', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('web')}
                       placeholder="https://miblog.dev"
                     />
                   </div>
@@ -1615,6 +1695,7 @@ export default function Profile() {
                       type="url"
                       value={links.tiktok || ''}
                       onChange={e => updateLink('tiktok', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('tiktok')}
                       placeholder="https://tiktok.com/@usuario"
                     />
                   </div>
@@ -1632,6 +1713,7 @@ export default function Profile() {
                       type="url"
                       value={links.instagram || ''}
                       onChange={e => updateLink('instagram', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('instagram')}
                       placeholder="https://instagram.com/usuario"
                     />
                   </div>
@@ -1649,6 +1731,7 @@ export default function Profile() {
                       type="url"
                       value={links.twitter || ''}
                       onChange={e => updateLink('twitter', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('twitter')}
                       placeholder="https://x.com/usuario"
                     />
                   </div>
@@ -1666,6 +1749,7 @@ export default function Profile() {
                       type="url"
                       value={links.facebook || ''}
                       onChange={e => updateLink('facebook', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('facebook')}
                       placeholder="https://facebook.com/usuario"
                     />
                   </div>
@@ -1683,6 +1767,7 @@ export default function Profile() {
                       type="url"
                       value={links.youtube || ''}
                       onChange={e => updateLink('youtube', e.target.value)}
+                      onBlur={() => normalizeUrlOnBlur('youtube')}
                       placeholder="https://youtube.com/@usuario"
                     />
                   </div>
@@ -1820,8 +1905,9 @@ export default function Profile() {
                             <label>Teléfono de Contacto</label>
                             <input
                               type="tel"
+                              inputMode="tel"
                               value={ref.telefono || ''}
-                              onChange={e => updateReferenciaLaboral(idx, 'telefono', e.target.value)}
+                              onChange={e => updateReferenciaLaboral(idx, 'telefono', formatPhoneInput(e.target.value))}
                               placeholder="+57 310 123 4567"
                             />
                           </div>
@@ -1934,8 +2020,9 @@ export default function Profile() {
                           <label>Teléfono de Contacto</label>
                           <input
                             type="tel"
+                            inputMode="tel"
                             value={ref.telefono || ''}
-                            onChange={e => updateReferenciaPersonal(idx, 'telefono', e.target.value)}
+                            onChange={e => updateReferenciaPersonal(idx, 'telefono', formatPhoneInput(e.target.value))}
                             placeholder="+57 300 987 6543"
                           />
                         </div>
