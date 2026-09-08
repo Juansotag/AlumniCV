@@ -39,7 +39,7 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 const supabaseClient = createClient(SUPABASE_URL, ANON_KEY)
 
-const TEST_EMAIL = 'mariana.restrepo.esg@alumnicv-sim.com'
+const TEST_EMAIL = 'mariana.restrepo@unisabana.edu.co'
 const TEST_PASSWORD = 'EsgPassword2026!#'
 
 let totalSteps = 0
