@@ -96,39 +96,35 @@ export default function Profile() {
     const digits = str.replace(/[^\d]/g, '')
     if (!digits) return hasPlus ? '+' : ''
 
-    // Caso Colombia con prefijo 57: '573101234567' -> '+57 310 123 4567'
-    if (digits.startsWith('57')) {
+    // Formatear automáticamente si ya se tienen los 10 dígitos colombianos completos
+    if (!hasPlus && digits.length === 10 && digits.startsWith('3')) {
+      return `+57 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`
+    }
+
+    // Si ya empieza con 57 y tiene 12 dígitos
+    if (digits.startsWith('57') && digits.length === 12) {
       const rest = digits.slice(2)
-      let out = '+57'
-      if (rest.length > 0) out += ' ' + rest.slice(0, 3)
-      if (rest.length > 3) out += ' ' + rest.slice(3, 6)
-      if (rest.length > 6) out += ' ' + rest.slice(6, 10)
-      return out
+      return `+57 ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
     }
 
-    // Caso celular Colombia (10 dígitos empezando con 3): '3101234567' -> '+57 310 123 4567'
-    if (!hasPlus && digits.startsWith('3') && digits.length <= 10) {
-      let out = '+57 ' + digits.slice(0, 3)
-      if (digits.length > 3) out += ' ' + digits.slice(3, 6)
-      if (digits.length > 6) out += ' ' + digits.slice(6, 10)
-      return out
-    }
+    // Permitir escribir y borrar libremente sin atrapar el cursor
+    return val
+  }
 
-    // Caso internacional con '+'
-    if (hasPlus) {
-      if (digits.length <= 2) return `+${digits}`
-      if (digits.length <= 5) return `+${digits.slice(0, 2)} ${digits.slice(2)}`
-      if (digits.length <= 8) return `+${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`
-      return `+${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 12)}`
+  const formatPhoneOnBlur = (val) => {
+    if (!val) return ''
+    const str = String(val).trim()
+    if (/[a-zA-Z]/.test(str)) return str
+    const digits = str.replace(/[^\d]/g, '')
+    if (!digits) return ''
+    if (digits.length === 10 && digits.startsWith('3')) {
+      return `+57 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`
     }
-
-    // Teléfono general nacional
-    if (digits.length <= 7) {
-      return digits.length > 3 ? `${digits.slice(0, 3)} ${digits.slice(3)}` : digits
+    if (digits.startsWith('57') && digits.length === 12) {
+      const rest = digits.slice(2)
+      return `+57 ${rest.slice(0, 3)} ${rest.slice(3, 6)} ${rest.slice(6, 10)}`
     }
-    let out = digits.slice(0, 3) + ' ' + digits.slice(3, 6)
-    if (digits.length > 6) out += ' ' + digits.slice(6, 10)
-    return out
+    return val
   }
 
   // Helper para formatear fecha mes-año YYYY-MM
@@ -599,6 +595,7 @@ export default function Profile() {
                   inputMode="tel"
                   value={telefono}
                   onChange={e => setTelefono(formatPhoneInput(e.target.value))}
+                  onBlur={() => setTelefono(formatPhoneOnBlur(telefono))}
                   placeholder="+57 310 123 4567"
                 />
               </div>
@@ -1908,6 +1905,7 @@ export default function Profile() {
                               inputMode="tel"
                               value={ref.telefono || ''}
                               onChange={e => updateReferenciaLaboral(idx, 'telefono', formatPhoneInput(e.target.value))}
+                              onBlur={() => updateReferenciaLaboral(idx, 'telefono', formatPhoneOnBlur(ref.telefono))}
                               placeholder="+57 310 123 4567"
                             />
                           </div>
@@ -2023,6 +2021,7 @@ export default function Profile() {
                             inputMode="tel"
                             value={ref.telefono || ''}
                             onChange={e => updateReferenciaPersonal(idx, 'telefono', formatPhoneInput(e.target.value))}
+                            onBlur={() => updateReferenciaPersonal(idx, 'telefono', formatPhoneOnBlur(ref.telefono))}
                             placeholder="+57 300 987 6543"
                           />
                         </div>

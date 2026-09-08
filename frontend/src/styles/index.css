@@ -323,8 +323,12 @@ h3, h4, h5, h6 {
 
 input[type="text"],
 input[type="email"],
+input[type="tel"],
+input[type="url"],
 input[type="password"],
 input[type="number"],
+input[type="date"],
+input[type="search"],
 select,
 textarea {
   width: 100%;
@@ -337,6 +341,7 @@ textarea {
   background: var(--bg-card);
   transition: border-color var(--transition), box-shadow var(--transition);
   outline: none;
+  box-sizing: border-box;
 }
 
 input:focus, select:focus, textarea:focus {
