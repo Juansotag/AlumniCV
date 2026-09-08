@@ -75,10 +75,10 @@ PRINCIPIOS FUNDAMENTALES DE REDACCIÓN EJECUTIVA:
    - Párrafo 4: Agradecimiento formal por la evaluación, reiterando disposición para entrevista ejecutiva y cierre protocolario formal.
 5. CORREO DE POSTULACIÓN:
    - Asunto profesional, directo y pulcro.
-   - Cuerpo conciso (2 párrafos ejecutivos), formal, que invite cordialmente a revisar los documentos adjuntos (Hoja de Vida y Carta de Presentación) y facilite canales de contacto.`
-
-    const promptGen = `
-Adapta el perfil profesional del siguiente candidato para postularse con máxima ventaja competitiva a la vacante objetivo.
+   - Cuerpo conciso (2 párrafos ejecutivos), formal, que invite cordialmente a revisar los documentos adjuntos (Hoja de Vida y Carta de Presentación) y facilite canales de contacto.
+6. HOJA DE VIDA:
+   - Debe constar de 1 a 2 páginas, dependiendo de la experiencia del candidato.
+   - Adapta el perfil profesional del siguiente candidato para postularse con máxima ventaja competitiva a la vacante objetivo.
 
 DATOS DE LA VACANTE OBJETIVO:
 - Empresa: ${application.empresa}
