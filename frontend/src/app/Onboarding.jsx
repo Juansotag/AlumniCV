@@ -167,8 +167,8 @@ export default function Onboarding() {
               )}
               <AssessmentResult respuesta={result.assessment?.respuesta_json} pdfUrl={result.assessment?.pdf_url} />
               <button className="btn-auth-submit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                onClick={() => navigate('/dashboard')}>
-                Continuar a AlumniCV <ArrowRight size={18} />
+                onClick={() => navigate('/profile')}>
+                Revisar y Completar mi Perfil Maestro <ArrowRight size={18} />
               </button>
             </>
           )}

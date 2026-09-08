@@ -78,29 +78,35 @@ PRINCIPIOS FUNDAMENTALES DE REDACCIÓN EJECUTIVA:
    - Cuerpo conciso (2 párrafos ejecutivos), formal, que invite cordialmente a revisar los documentos adjuntos (Hoja de Vida y Carta de Presentación) y facilite canales de contacto.
 6. HOJA DE VIDA:
    - Debe constar de 1 a 2 páginas, dependiendo de la experiencia del candidato.
-   - Adapta el perfil profesional del siguiente candidato para postularse con máxima ventaja competitiva a la vacante objetivo.
+   - Adapta el perfil profesional del siguiente candidato para postularse con máxima ventaja competitiva a la vacante objetivo.`
 
+    const promptGen = `
 DATOS DE LA VACANTE OBJETIVO:
 - Empresa: ${application.empresa}
 - Cargo / Rol: ${application.puesto}
 - Descripción / Requisitos: ${application.descripcion_corta || 'No especificada'}
 - Modalidad de trabajo: ${application.modalidad || 'Híbrida'}
 
-DATOS DEL CANDIDATO (ALUMNI):
+DATOS DEL CANDIDATO (PERFIL MAESTRO INTEGRAL):
 - Nombre completo: ${profile.nombre || 'Candidato UniSabana'}
-- Resumen actual: ${profile.resumen || ''}
-- Experiencias laborales: ${JSON.stringify(profile.experiencia || [])}
-- Formación académica: ${JSON.stringify(profile.educacion_formal || [])}
-- Habilidades técnicas y herramientas: ${JSON.stringify(profile.habilidades_tecnicas || [])}
+- Resumen maestro: ${profile.resumen || ''}
+- Historial completo de experiencias laborales: ${JSON.stringify(profile.experiencia || [])}
+- Educación formal (Pregrados, Posgrados, etc.): ${JSON.stringify(profile.educacion_formal || [])}
+- Formación no formal (Diplomados, Minors, Cursos): ${JSON.stringify(profile.formacion_no_formal || [])}
+- Certificaciones profesionales: ${JSON.stringify(profile.certificaciones || [])}
+- Habilidades técnicas y herramientas categorizadas: ${JSON.stringify(profile.habilidades_tecnicas || [])}
+- Habilidades blandas y de liderazgo: ${JSON.stringify(profile.habilidades_blandas || [])}
+- Idiomas: ${JSON.stringify(profile.idiomas || [])}
 
-INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN:
-1. "resumen_adaptado": Redacta un perfil ejecutivo de 3 a 4 oraciones de alto impacto:
+INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA:
+El Perfil Maestro del candidato es una base de datos exhaustiva. Tu rol como headhunter es CURAR estratégicamente la información para maximizar las probabilidades de entrevista para ${application.puesto} en ${application.empresa}:
+1. "resumen_adaptado": Redacta un perfil ejecutivo de 3 a 4 oraciones de altísimo impacto:
    - Oración 1: Título profesional, trayectoria y núcleo de especialidad alineado a ${application.puesto}.
    - Oración 2: Dominio técnico de las principales herramientas y metodologías demandadas por ${application.empresa}.
    - Oración 3: Mayor factor de diferenciación o hito de impacto comprobado.
-2. "experiencia_adaptada": Conserva todas las empresas, cargos y fechas del candidato. Reescribe cada descripción en viñetas o párrafos contundentes con enfoque STAR, resaltando responsabilidades e impacto cuantificable relevante para ${application.puesto}.
+2. "experiencia_adaptada": Selecciona y adapta las experiencias más relevantes del Perfil Maestro (conservando empresa, cargo y fechas de inicio y fin). Reescribe las descripciones en viñetas contundentes con metodología STAR (Situación, Tarea, Acción, Resultado con métricas y herramientas). Destaca los proyectos y responsabilidades de mayor afinidad con ${application.puesto}.
 3. "palabras_clave_destacadas": Lista de 5 a 8 palabras clave ATS estratégicas comunes entre el perfil del candidato y la vacante de ${application.puesto}.
-4. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elegante y persuasiva (3 a 4 párrafos completos).
+4. "cover_letter": Redacta una carta de presentación completa, altamente personalizada para ${application.empresa}, elegante y persuasiva (3 a 4 párrafos completos que demuestren por qué el candidato es la opción ideal).
 5. "correo": Redacta el asunto y cuerpo de correo ejecutivo para el envío formal de la postulación y adjuntos.
 
 Devuelve estrictamente un objeto JSON con el siguiente esquema exacto:

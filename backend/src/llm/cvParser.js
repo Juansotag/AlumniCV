@@ -1,87 +1,104 @@
-import { completeJson, MODEL_FAST } from './client.js'
+import { completeJson, MODEL_FRONTIER } from './client.js'
 
-const PROMPT_TEMPLATE = (cvText) => `Actúa como un parser experto de hojas de vida (CV / Resumes). Analiza el siguiente currículum (que puede estar en ESPAÑOL, INGLÉS o cualquier otro idioma) y devuelve ÚNICAMENTE un objeto JSON (sin markdown, sin explicaciones) con esta estructura exacta:
+const PROMPT_TEMPLATE = (cvText) => `Eres un extractor experto de perfiles profesionales para el Perfil Maestro de Carrera (Master Career Profile).
+Tu misión es procesar el siguiente currículum vitae (que puede estar en ESPAÑOL, INGLÉS o cualquier idioma, con diseño de doble columna o secciones complejas) y extraer TODO su contenido de forma exhaustiva, estructurada y sin pérdidas.
+
+REGLA DE ORO DE EXTRACCIÓN:
+PROHIBIDO CONDENSAR O RESUMIR: No sintetices las viñetas ni recortes logros. Si una experiencia tiene 5 logros con métricas, herramientas y proyectos, extrae cada uno de ellos de manera completa e íntegra. El Perfil Maestro debe contener la totalidad de los datos del candidato.
+
+Devuelve ÚNICAMENTE un objeto JSON válido (sin formato markdown adicional) con este esquema exacto:
 
 {
-  "resumen": "Resumen profesional de 2-3 frases (si el CV está en inglés, puedes mantenerlo en inglés o resumirlo fielmente)",
+  "resumen": "Resumen o perfil profesional completo del candidato (conservando tono y amplitud original)",
   "experiencia": [
     {
-      "empresa": "Nombre de la empresa",
+      "empresa": "Nombre de la empresa o entidad",
       "cargo": "Cargo o título del puesto",
+      "ubicacion": "Ciudad, País o null si no se especifica",
       "desde": "YYYY-MM o YYYY",
-      "hasta": "YYYY-MM o YYYY o null si es el empleo actual (ej. Present / Current / Actual)",
-      "descripcion": "Logros y responsabilidades principales"
+      "hasta": "YYYY-MM o YYYY o null si es el empleo actual",
+      "es_actual": true o false,
+      "modalidad": "presencial" | "hibrido" | "virtual" | null,
+      "intensidad": "tiempo_completo" | "medio_tiempo" | "freelance" | "fines_de_semana" | "por_proyecto" | "por_horas" | "otro" | null,
+      "tipo_contrato": "practicas" | "prestacion_servicios" | "libre_nombramiento" | "carrera_administrativa" | "termino_fijo" | "termino_indefinido" | "obra_labor" | "otro" | null,
+      "descripcion": "Descripción detallada completa y viñetas de logros, responsabilidades y proyectos (conservando métricas, porcentajes, herramientas y contexto original)"
     }
   ],
   "educacion_formal": [
     {
-      "institucion": "Universidad o institución educativa",
-      "titulo": "Título obtenido o carrera",
+      "nivel": "post_doctorado" | "doctorado" | "maestria" | "especializacion" | "pregrado" | "tecnologo" | "tecnico" | "bachillerato" | "otro",
+      "titulo": "Nombre oficial del título obtenido o carrera",
+      "institucion": "Universidad o institución educativa oficial",
       "desde": "YYYY o null",
-      "hasta": "YYYY o null si está en curso"
-    }
-  ],
-  "certificaciones": [
-    {
-      "nombre": "Nombre de la certificación o licencia",
-      "fecha_emision": "YYYY-MM o YYYY o null",
-      "fecha_vencimiento": "YYYY-MM o YYYY o null",
-      "entidad_emisora": "Entidad que emite la credencial",
-      "id_credencial": "Código o ID si existe, o null"
+      "hasta": "YYYY o null si está en curso",
+      "estado": "graduado" | "en_curso" | "aplazado" | "incompleto"
     }
   ],
   "formacion_no_formal": [
     {
-      "nombre": "Curso, bootcamp o taller",
-      "institucion": "Plataforma o entidad educativa (Coursera, Udemy, etc.)",
+      "tipo": "minor" | "diplomado" | "curso" | "taller" | "bootcamp" | "otro",
+      "nombre": "Nombre del curso, diplomado, minor o taller",
+      "institucion": "Plataforma o entidad educativa (Coursera, UniSabana, Platzi, etc.)",
+      "intensidad_horas": "Número de horas o duración si se menciona, o null",
       "fecha": "YYYY-MM o YYYY o null"
+    }
+  ],
+  "certificaciones": [
+    {
+      "nombre": "Nombre oficial de la certificación o licencia",
+      "entidad_emisora": "Entidad acreditadora (ej. Scrum Alliance, AWS, PMI, Google)",
+      "id_credencial": "Código, ID o número de licencia si existe, o null",
+      "url_credencial": "URL de verificación si existe, o null",
+      "fecha_emision": "YYYY-MM o YYYY o null",
+      "fecha_vencimiento": "YYYY-MM o YYYY o null",
+      "no_vence": true o false
     }
   ],
   "idiomas": [
     {
-      "idioma": "Nombre del idioma (ej. Español, Inglés, Francés)",
-      "nivel": "básico|intermedio|avanzado|nativo"
+      "idioma": "Nombre del idioma en español (ej. Español, Inglés, Francés, Alemán)",
+      "nivel": "nativo" | "avanzado" | "intermedio" | "básico",
+      "nivel_mcer": "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | "Nativo"
     }
   ],
   "habilidades_tecnicas": [
     {
-      "tipo": "programacion|programa|conocimiento",
-      "nombre": "Nombre de la tecnología, software o conocimiento",
-      "nivel": "básico|intermedio|avanzado o null si no se especifica"
+      "categoria": "software" | "tecnologia_datos" | "metodologias" | "conocimientos_dominio",
+      "nombre": "Nombre de la herramienta, lenguaje, metodología o conocimiento técnico",
+      "nivel": "básico" | "intermedio" | "avanzado" | null
     }
   ],
-  "habilidades_blandas": ["Liderazgo", "Comunicación asertiva", "..."]
+  "habilidades_blandas": [
+    "string (ej. Liderazgo, Comunicación asertiva, Negociación, Pensamiento crítico)"
+  ]
 }
 
-Reglas indispensables:
-1. IDIOMAS Y ENCABEZADOS EN INGLÉS:
-   - Si el CV está en INGLÉS, detecta adecuadamente las secciones estándar: "Work Experience", "Employment History", "Professional Experience", "Education", "Skills", "Technical Skills", "Languages", "Certifications / Licenses", "Summary / About Me", "Projects".
-   - Normaliza el campo "nivel" de "idiomas" a uno de estos 4 valores exactos en español:
-     * "nativo" (Native, Bilingual, Mother tongue)
-     * "avanzado" (Fluent, Proficient, Advanced, C1, C2)
-     * "intermedio" (Intermediate, Professional working proficiency, B1, B2)
-     * "básico" (Basic, Elementary, Limited working proficiency, A1, A2)
-   - Normaliza el campo "tipo" de "habilidades_tecnicas" exactamente a:
-     * "programacion" (lenguajes, frameworks, librerías de código como Python, React, SQL, Java)
-     * "programa" (software, herramientas, suites como Excel, Jira, Figma, Power BI, Docker)
-     * "conocimiento" (metodologías, conceptos o disciplinas como Scrum, Machine Learning, SEO, Finanzas)
-2. FECHAS:
-   - Convierte meses a números ("Jan 2021" -> "2021-01", "Oct 2023" -> "2023-10").
-   - Si la experiencia indica "Present", "Current", "Actual" o "Presente", el campo "hasta" DEBE ser null.
-3. PRECISIÓN:
-   - Extrae fielmente la información presente sin inventar puestos, fechas ni empresas.
-   - Si una sección no tiene datos en el documento, devuélvela como arreglo vacío [].
-   - Responde estrictamente con el JSON solicitado, sin rodeos ni caracteres adicionales.
+Reglas específicas de clasificación:
+1. CATEGORÍAS DE HABILIDADES TÉCNICAS ("categoria"):
+   - "software": Herramientas ofimáticas, ERP, CRM, diseño y software empresarial (Excel, SAP, Jira, Salesforce, Power BI, Figma).
+   - "tecnologia_datos": Lenguajes de programación, librerías, bases de datos y DevOps (Python, SQL, React, Node.js, AWS, Docker).
+   - "metodologias": Metodologías y marcos de trabajo (Scrum, Agile, PMI, Lean Six Sigma, OKRs, Design Thinking).
+   - "conocimientos_dominio": Especialidades conceptuales o sectoriales (Finanzas corporativas, Regulación financiera, Derecho laboral, Supply Chain).
+2. EDUCACIÓN FORMAL vs. NO FORMAL:
+   - "educacion_formal": Grados académicos reconocidos por ministerios de educación (Pregrado, Especialización, Maestría, Doctorado, Tecnólogo, Técnico laboral/profesional, Bachillerato).
+   - "formacion_no_formal": Cursos cortos, diplomados universitarios, minors, talleres, bootcamps de desarrollo.
+3. JORNADA Y CONTRATO:
+   - Si en el texto se indica "Full-time" o "Tiempo completo" -> intensidad = "tiempo_completo".
+   - Si indica "Part-time" o "Medio tiempo" -> intensidad = "medio_tiempo".
+   - Si indica "Freelance", "Independent Contractor" o "Prestación de servicios" -> asigna los valores correspondientes.
+   - Si no se especifica en el texto, devuelve null (el usuario podrá completarlo en el formulario interactivo).
+4. FECHAS:
+   - Normaliza meses en números ("Feb 2022" -> "2022-02"). Si el empleo es actual ("Present", "Current", "Actual"), "hasta" DEBE ser null y "es_actual" true.
 
 ---
 CONTENIDO DEL CV:
 ${cvText}`
 
 /**
- * Extrae los campos estructurados del perfil a partir del texto plano de un CV.
+ * Extrae exhaustivamente todos los campos estructurados del Perfil Maestro a partir del texto de un CV.
  * @param {string} cvText
- * @returns {Promise<object>} — coincide con las columnas jsonb de la tabla `usuarios`
+ * @returns {Promise<object>} — objeto compatible con las columnas jsonb del Perfil Maestro
  */
 export async function parseCvText(cvText) {
-  return completeJson(PROMPT_TEMPLATE(cvText), { maxTokens: 4096, model: MODEL_FAST })
+  return completeJson(PROMPT_TEMPLATE(cvText), { maxTokens: 4096, model: MODEL_FRONTIER })
 }
