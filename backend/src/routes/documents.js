@@ -1,4 +1,8 @@
 import { Router } from 'express'
+import multer from 'multer'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { requireAuth } from '../middleware/auth.js'
 import { query } from '../db/index.js'
 import { completeJson } from '../llm/client.js'
@@ -10,6 +14,26 @@ import {
 import { uploadDocumento } from '../lib/storage.js'
 
 const router = Router()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const UPLOADS_DIR = path.join(__dirname, '../../uploads')
+
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+}
+
+const docUpload = multer({
+  dest: UPLOADS_DIR,
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = (file.originalname || '').toLowerCase()
+    const isDocx = ext.endsWith('.docx') || file.mimetype.includes('word') || file.mimetype.includes('officedocument')
+    const isPdf = ext.endsWith('.pdf') || file.mimetype.includes('pdf')
+    if (!isDocx && !isPdf) {
+      return cb(new Error('Solo se permiten archivos en formato Word (.docx) o PDF (.pdf)'))
+    }
+    cb(null, true)
+  }
+})
 
 /**
  * GET /api/documents
@@ -222,6 +246,116 @@ router.delete('/:id', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Error en DELETE /api/documents/:id:', err.message)
     res.status(500).json({ error: 'Error al eliminar el documento' })
+  }
+})
+
+/**
+ * GET /api/documents/:id/file
+ * Proxy autenticado para obtener el binario del documento sin restricciones de CORS.
+ */
+router.get('/:id/file', requireAuth, async (req, res) => {
+  const { id } = req.params
+  try {
+    const { rows: [doc] } = await query(
+      `SELECT id, nombre_archivo, file_url FROM documents WHERE id = $1 AND usuario_id = $2`,
+      [id, req.user.id]
+    )
+    if (!doc) return res.status(404).json({ error: 'Documento no encontrado' })
+
+    const response = await fetch(doc.file_url)
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Error al obtener el archivo desde el almacenamiento' })
+    }
+
+    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.nombre_archivo)}"`)
+
+    const arrayBuffer = await response.arrayBuffer()
+    res.send(Buffer.from(arrayBuffer))
+  } catch (err) {
+    console.error('Error en GET /api/documents/:id/file:', err.message)
+    res.status(500).json({ error: 'Error al servir el documento' })
+  }
+})
+
+/**
+ * POST /api/documents/:id/replace
+ * Reemplaza un documento generado con una versión modificada/editada por el usuario (.docx o .pdf).
+ */
+router.post('/:id/replace', requireAuth, docUpload.single('file'), async (req, res) => {
+  const { id } = req.params
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Debes seleccionar un archivo (.docx o .pdf) para reemplazar el documento' })
+  }
+
+  const filePath = req.file.path
+
+  try {
+    // 1. Validar propiedad del documento
+    const { rows: [doc] } = await query(
+      `SELECT d.*, a.empresa, a.puesto 
+       FROM documents d
+       JOIN applications a ON d.application_id = a.id
+       WHERE d.id = $1 AND d.usuario_id = $2`,
+      [id, req.user.id]
+    )
+
+    if (!doc) {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+      return res.status(404).json({ error: 'Documento no encontrado o no autorizado' })
+    }
+
+    // 2. Sanitizar nombre de archivo
+    let originalName = req.file.originalname || doc.nombre_archivo || 'documento_editado.docx'
+    try {
+      const decoded = Buffer.from(originalName, 'latin1').toString('utf8')
+      if (decoded && !decoded.includes('\ufffd')) {
+        originalName = decoded
+      }
+    } catch {}
+
+    const ext = path.extname(originalName).toLowerCase() || '.docx'
+    const contentType = ext === '.pdf'
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+    const fileBuffer = fs.readFileSync(filePath)
+    const baseName = path.basename(originalName, ext)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .slice(0, 70) || 'documento'
+
+    const storagePath = `documents/${req.user.id}/${Date.now()}-${baseName}${ext}`
+    const newFileUrl = await uploadDocumento(fileBuffer, storagePath, contentType)
+
+    // 3. Actualizar registro en Postgres
+    const { rows: [updatedDoc] } = await query(
+      `UPDATE documents
+       SET nombre_archivo = $1, file_url = $2
+       WHERE id = $3 AND usuario_id = $4
+       RETURNING *`,
+      [originalName, newFileUrl, id, req.user.id]
+    )
+
+    // 4. Limpiar temporal
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+
+    res.json({
+      message: 'Versión modificada subida exitosamente',
+      document: {
+        ...updatedDoc,
+        empresa: doc.empresa,
+        puesto: doc.puesto
+      }
+    })
+  } catch (err) {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    console.error('Error en POST /api/documents/:id/replace:', err.message)
+    res.status(500).json({ error: 'Error al reemplazar el documento: ' + err.message })
   }
 })
 

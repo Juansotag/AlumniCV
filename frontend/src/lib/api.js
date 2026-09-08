@@ -34,3 +34,28 @@ export async function apiFetch(path, options = {}) {
 
   return res.json()
 }
+
+/**
+ * Realiza un fetch autenticado retornando el Blob binario (para previsualización de .docx o .pdf)
+ */
+export async function apiFetchBlob(path, options = {}) {
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    throw new Error('Sin sesión activa')
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      ...(options.headers ?? {}),
+    },
+  })
+
+  if (!res.ok) {
+    throw new Error(`Error al obtener archivo binario: ${res.status}`)
+  }
+
+  return res.blob()
+}
