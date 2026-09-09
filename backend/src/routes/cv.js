@@ -122,7 +122,18 @@ router.post('/upload', requireAuth, upload.single('cv'), async (req, res) => {
          telefono = COALESCE($2, usuarios.telefono),
          correo_personal = COALESCE($3, usuarios.correo_personal),
          ubicacion = COALESCE($4, usuarios.ubicacion),
-         links = CASE WHEN $5::jsonb != '[]'::jsonb AND (usuarios.links IS NULL OR jsonb_array_length(usuarios.links) = 0) THEN $5::jsonb ELSE COALESCE(usuarios.links, '[]'::jsonb) END,
+         links = CASE
+           WHEN $5::jsonb != '[]'::jsonb AND (
+             usuarios.links IS NULL
+             OR usuarios.links = '{}'::jsonb
+             OR usuarios.links = '[]'::jsonb
+             OR (CASE WHEN jsonb_typeof(usuarios.links) = 'array' THEN jsonb_array_length(usuarios.links) ELSE 0 END) = 0
+           ) THEN $5::jsonb
+           ELSE COALESCE(
+             CASE WHEN jsonb_typeof(usuarios.links) = 'array' THEN usuarios.links ELSE '[]'::jsonb END,
+             '[]'::jsonb
+           )
+         END,
          resumen = $6,
          experiencia = $7,
          educacion_formal = $8,
@@ -180,7 +191,7 @@ router.post('/upload', requireAuth, upload.single('cv'), async (req, res) => {
 
     res.json({ usuario, cv_file: cvFile, assessment, aviso })
   } catch (err) {
-    console.error('Error en POST /api/cv/upload:', err.message)
+    console.error('Error en POST /api/cv/upload:', err)
     const isClientError = /contraseña|password|corrupto|válido|vencid|no tiene texto|texto seleccionable|menos de 500 bytes/i.test(err.message)
     const isRateLimit = /alta demanda|límite de peticiones|rate limit|429/i.test(err.message)
 
