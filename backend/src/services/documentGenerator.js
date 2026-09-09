@@ -285,13 +285,36 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
 
       let rawDetails = []
       if (Array.isArray(edu.detalles) && edu.detalles.length > 0) {
-        rawDetails = edu.detalles
+        rawDetails = [...edu.detalles]
       } else if (Array.isArray(edu.logros) && edu.logros.length > 0) {
-        rawDetails = edu.logros
+        rawDetails = [...edu.logros]
+      } else if (typeof edu.logros === 'string' && edu.logros.trim()) {
+        rawDetails = edu.logros.split(/\n+|•|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/)
+      } else if (Array.isArray(edu.reconocimientos) && edu.reconocimientos.length > 0) {
+        rawDetails = [...edu.reconocimientos]
+      } else if (typeof edu.reconocimientos === 'string' && edu.reconocimientos.trim()) {
+        rawDetails = edu.reconocimientos.split(/\n+|•|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/)
       } else if (typeof edu.descripcion === 'string' && edu.descripcion.trim()) {
         rawDetails = edu.descripcion.split(/\n+|•|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚ])/)
       } else if (edu.tesis) {
         rawDetails.push(`Tesis de grado / Investigación: ${edu.tesis}`)
+      }
+
+      // Preservar y asegurar reconocimientos o logros explícitos del perfil maestro
+      const matchingProfileEdu = profileEdus.find(p =>
+        p && p.titulo && edu.titulo && p.titulo.toLowerCase().trim() === edu.titulo.toLowerCase().trim()
+      )
+      const explicitLogros = matchingProfileEdu?.logros || matchingProfileEdu?.reconocimientos || edu.logros || edu.reconocimientos
+      if (explicitLogros) {
+        const logrosArr = Array.isArray(explicitLogros)
+          ? explicitLogros
+          : String(explicitLogros).split(/\n+|•/).map(s => s.trim()).filter(Boolean)
+        for (const l of logrosArr) {
+          const alreadyIn = rawDetails.some(d => String(d).toLowerCase().includes(String(l).toLowerCase().slice(0, 20)))
+          if (!alreadyIn && l.length > 5) {
+            rawDetails.unshift(l)
+          }
+        }
       }
 
       let cleanDetails = rawDetails
@@ -311,6 +334,9 @@ export async function generateCvDocx(profile, applicationData, llmCvContent) {
         if (tLower.includes('analítica') || tLower.includes('data') || tLower.includes('inteligencia artificial')) {
           cleanDetails.push('Profundización en modelado predictivo, arquitecturas de Machine Learning y Deep Learning aplicadas a la optimización de procesos de negocio.')
           cleanDetails.push('Desarrollo de proyectos de investigación aplicada con rigor estadístico y experimentación computacional avanzada.')
+        } else if (tLower.includes('psicología') || tLower.includes('social') || tLower.includes('comunitaria')) {
+          cleanDetails.push('Énfasis en metodologías de intervención comunitaria participativa, diagnóstico psicosocial y relacionamiento de grupos de interés.')
+          cleanDetails.push('Desarrollo de proyectos con enfoque de impacto social medible, derechos humanos y articulación interinstitucional.')
         } else if (tLower.includes('economía') || tLower.includes('finanzas')) {
           cleanDetails.push('Formación avanzada en econometría aplicada, modelado cuantitativo, inferencia causal y análisis de series de tiempo.')
           cleanDetails.push('Capacidad para evaluar el impacto económico y financiero de decisiones analíticas en entornos globales.')

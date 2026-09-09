@@ -41,7 +41,8 @@ Devuelve ÚNICAMENTE un objeto JSON válido (sin formato markdown adicional) con
       "institucion": "Universidad o institución educativa oficial",
       "desde": "YYYY o null",
       "hasta": "YYYY o null si está en curso",
-      "estado": "graduado" | "en_curso" | "aplazado" | "incompleto"
+      "estado": "graduado" | "en_curso" | "aplazado" | "incompleto",
+      "logros": "Reconocimientos, distinciones, tesis meritoria/laureada, becas, honores o proyectos relevantes si se mencionan en el CV, o null"
     }
   ],
   "formacion_no_formal": [

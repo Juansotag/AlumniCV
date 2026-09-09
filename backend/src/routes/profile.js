@@ -119,6 +119,16 @@ router.put('/', requireAuth, async (req, res) => {
     const safeEducacionFormal = (Array.isArray(educacion_formal) ? educacion_formal : [])
       .slice(0, 30)
       .filter(e => e && typeof e === 'object')
+      .map(e => ({
+        ...e,
+        titulo: typeof e.titulo === 'string' ? e.titulo.trim().slice(0, 150) : (e.titulo || ''),
+        institucion: typeof e.institucion === 'string' ? e.institucion.trim().slice(0, 150) : (e.institucion || ''),
+        desde: typeof e.desde === 'string' ? e.desde.trim().slice(0, 20) : (e.desde || null),
+        hasta: typeof e.hasta === 'string' ? e.hasta.trim().slice(0, 20) : (e.hasta || null),
+        nivel: typeof e.nivel === 'string' ? e.nivel.trim().slice(0, 50) : (e.nivel || 'pregrado'),
+        estado: typeof e.estado === 'string' ? e.estado.trim().slice(0, 50) : (e.estado || 'graduado'),
+        logros: typeof e.logros === 'string' ? e.logros.trim().slice(0, 2000) : (Array.isArray(e.logros) ? e.logros.slice(0, 10).map(l => String(l).slice(0, 300)) : (typeof e.reconocimientos === 'string' ? e.reconocimientos.trim().slice(0, 2000) : ''))
+      }))
 
     const safeFormacionNoFormal = (Array.isArray(formacion_no_formal) ? formacion_no_formal : [])
       .slice(0, 30)

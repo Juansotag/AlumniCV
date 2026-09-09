@@ -327,7 +327,8 @@ export default function Profile() {
         institucion: 'Universidad de La Sabana',
         desde: '',
         hasta: '',
-        estado: 'graduado'
+        estado: 'graduado',
+        logros: ''
       },
       ...educacionFormal
     ])
@@ -1181,6 +1182,23 @@ export default function Profile() {
                             <option value="incompleto">Incompleto</option>
                           </select>
                         </div>
+                      </div>
+
+                      <div className="form-group" style={{ marginTop: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+                          <Award size={15} color="var(--c-blue-dark)" />
+                          Reconocimientos, Logros, Distinciones o Tesis
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={edu.logros || edu.reconocimientos || ''}
+                          onChange={e => updateEducacionFormal(idx, 'logros', e.target.value)}
+                          placeholder="Ej. Tesis meritoria laureada sobre modelos de impacto social, Beca de Excelencia Académica, Mención de honor por promedio sobresaliente, Primer puesto de la promoción."
+                          style={{ resize: 'vertical' }}
+                        />
+                        <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                          Menciona honores académicos, tesis destacadas, publicaciones, becas o distinciones especiales para que el asesor de IA los priorice en tu CV adaptado.
+                        </small>
                       </div>
                     </div>
                   ))

@@ -103,7 +103,7 @@ PRINCIPIOS FUNDAMENTALES DE REDACCIÓN EJECUTIVA:
      [Verbo de acción en tercera persona ("Lideró", "Diseñó", "Desarrolló", "Estructuró", "Optimizó")] + [Qué construyó o implementó con tecnologías y metodologías específicas] + [Métrica cuantitativa / KPI / Impacto demostrable] + [Contexto estratégico / Metodología / Stakeholder].
 3. DENSIDAD PROFESIONAL Y COBERTURA DEL 100%:
    - Para TODOS Y CADA UNO de los cargos laborales del perfil del candidato, genera OBLIGATORIAMENTE entre 3 y 5 viñetas sustanciales (de 25 a 45 palabras cada una) en el array "logros". Queda terminantemente prohibido generar menos de 3 viñetas para ningún cargo.
-   - Para TODAS Y CADA UNA de las titulaciones de educación formal del perfil, genera OBLIGATORIAMENTE entre 2 y 3 viñetas sustanciales en el array "detalles", articulando proyectos de investigación aplicada, tesis, modelado econométrico o cuantitativo, y conexión directa con el cargo postulado.
+   - Para TODAS Y CADA UNA de las titulaciones de educación formal del perfil, genera OBLIGATORIAMENTE entre 2 y 3 viñetas sustanciales en el array "detalles". DEBES revisar minuciosamente el campo 'logros' / 'reconocimientos' / 'tesis' de cada titulación; es OBLIGATORIO incorporar explícitamente cualquier distinción, tesis meritoria o laureada, beca, honor o publicación académica que el candidato haya registrado, articulando su rigor y aplicación directa a los desafíos de la vacante.
 4. CARTA DE PRESENTACIÓN EJECUTIVA:
    - Debe constar de 3 a 4 párrafos sustanciales, elocuentes y personalizados para la empresa y el cargo.
    - Párrafo 1: Postulación formal y alineación con los objetivos estratégicos de la empresa.
@@ -139,7 +139,7 @@ DATOS DEL CANDIDATO (PERFIL MAESTRO COMPLETO):
 - Resumen maestro: ${profile.resumen || ''}
 - Historial completo de experiencias laborales (${experienciaList.length} cargos obligatorios):
 ${JSON.stringify(experienciaList, null, 2)}
-- Educación formal completa (${educacionList.length} títulos obligatorios):
+- Educación formal completa (${educacionList.length} títulos obligatorios con reconocimientos/logros/tesis):
 ${JSON.stringify(educacionList, null, 2)}
 - Formación no formal / Diplomados:
 ${JSON.stringify(profile.formacion_no_formal || [], null, 2)}
@@ -158,7 +158,7 @@ INSTRUCCIONES ESPECÍFICAS DE GENERACIÓN Y CURADURÍA:
 1. "titular_adaptado": Título ejecutivo de alto nivel adaptado con máxima precisión a ${application.puesto} en ${application.empresa}.
 2. "resumen_adaptado": Perfil profesional ejecutivo de 5 a 6 líneas de altísimo impacto, sin clichés, destacando la propuesta de valor diferencial y las capacidades operativas y estratégicas que aporta a ${application.empresa}.
 3. "experiencia_adaptada": DEBES incluir los ${experienciaList.length} cargos del candidato sin omitir ninguno. Para CADA cargo, genera un objeto con empresa, cargo, desde, hasta, modalidad, y un array "logros" con OBLIGATORIAMENTE entre 3 y 5 viñetas detalladas STAR (de 25 a 45 palabras cada una). DEBES MANTENER TODOS LOS DATOS Y KPIs REALES (cifras de registros, USD generados, municipios, modelos de machine learning, clientes corporativos y entidades aliadas).
-4. "educacion_adaptada": DEBES incluir los ${educacionList.length} títulos de educación formal del perfil sin omitir ninguno. Para CADA título, genera titulo, institucion, periodo y un array "detalles" con OBLIGATORIAMENTE entre 2 y 3 viñetas sustanciales que demuestren cómo la investigación, modelado cuantitativo y rigor académico de esa titulación fortalecen su idoneidad para ${application.puesto}.
+4. "educacion_adaptada": DEBES incluir los ${educacionList.length} títulos de educación formal del perfil sin omitir ninguno. Para CADA título, genera titulo, institucion, periodo y un array "detalles" con OBLIGATORIAMENTE entre 2 y 3 viñetas sustanciales que INCORPOREN OBLIGATORIAMENTE los reconocimientos, logros, tesis meritoria, becas o distinciones provistos por el usuario en dicho grado, articulando además cómo su excelencia investigativa y enfoque cuantitativo/metodológico fortalecen su idoneidad para ${application.puesto}.
 5. "habilidades_tecnicas_destacadas": Selecciona y ordena entre 8 y 12 habilidades técnicas del perfil que mayor relevancia tengan para ${application.puesto}.
 6. "habilidades_blandas_destacadas": Selecciona entre 5 y 6 competencias conductuales y de liderazgo más pertinentes.
 7. "certificaciones_destacadas": Lista de certificaciones del candidato pertinentes.
@@ -194,8 +194,8 @@ Devuelve estrictamente un objeto JSON con este esquema exacto:
         "institucion": "string",
         "periodo": "string",
         "detalles": [
-          "string (investigación, econometría o foco académico aplicado 1)",
-          "string (competencia diferencial o distinción 2)"
+          "string (reconocimiento académico, tesis meritoria o distinción real incorporada 1)",
+          "string (investigación aplicada, econometría o foco metodológico 2)"
         ]
       }
     ],
